@@ -1,0 +1,32 @@
+schema_version: "1.0"
+
+extension:
+  id: release
+  name: "Release Hook (test + version + commit + tag + push)"
+  version: "0.1.0"
+  description: "Regra A9: ao final de todo /speckit.implement, roda os testes, propõe incremento SemVer, atualiza VERSION, faz commit local, cria tag anotada e sugere push."
+  category: "process"
+  effect: "read-write"
+  author: myplanner
+  license: MIT
+
+requires:
+  speckit_version: ">=1.0.0"
+
+provides:
+  commands:
+    - name: speckit.release.commit
+      file: commands/speckit.release.commit.md
+      description: "Aplica a regra A9 de teste, versão, commit, tag e push após a implementação"
+
+hooks:
+  after_implement:
+    command: speckit.release.commit
+    optional: false
+    description: "Testar, versionar (SemVer), atualizar VERSION, commitar, criar tag e sugerir push (regra A9)"
+
+tags:
+  - "release"
+  - "git"
+  - "versioning"
+  - "workflow"

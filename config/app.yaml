@@ -1,0 +1,24 @@
+# Parâmetros não secretos e alteráveis (versionado). Segredos ficam em .env (nunca versionado).
+# Ver AGENTS.md (A7).
+
+attachments:
+  max_size_mb: 5
+
+trello:
+  # Orçamento abaixo do limite oficial de 100 req/10 s por token,
+  # com backoff exponencial em HTTP 429.
+  rate_limit:
+    requests_per_10s: 40
+    backoff: exponential
+  priority_labels:
+    - "Muito alta"
+    - "Alta"
+    - "Média"
+    - "Baixa"
+    - "Muito baixa"
+
+session:
+  duration_days: 90
+
+ui:
+  default_board: last_used

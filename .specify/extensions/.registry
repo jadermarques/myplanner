@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "extensions": {
+    "bug": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:1d0da5458f3c18ff08cf1602d88cecc33fad07068208951fb7128090cfa90c90",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "cline": [
+          "speckit.bug.assess",
+          "speckit.bug.fix",
+          "speckit.bug.test"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-09-25T00:53:42.770504+00:00"
+    },
+    "assess": {
+      "version": "1.0.1",
+      "source": "local",
+      "manifest_hash": "sha256:a1c87d9ce8088e7865f1d352137777a693b0595ccc310957c7c051a604ca1db2",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "cline": [
+          "speckit.assess.intake",
+          "speckit.assess.research",
+          "speckit.assess.define",
+          "speckit.assess.shape",
+          "speckit.assess.decide"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-09-25T00:53:43.656853+00:00"
+    },
+    "release": {
+      "version": "0.1.0",
+      "source": "local",
+      "manifest_hash": "sha256:ba7b2e5d83056ea4ea874e9715cda56468a403974dace971b4c5eccad2f4ea74",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "cline": [
+          "speckit.release.commit"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-09-25T01:02:42.894689+00:00"
+    }
+  }
+}

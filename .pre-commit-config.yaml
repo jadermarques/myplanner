@@ -1,0 +1,8 @@
+# Ganchos de pre-commit — ver AGENTS.md (A8) e docs/TESTS_STRATEGY.md.
+# Detecção de segredos é obrigatória. Lint e testes rápidos serão adicionados
+# quando backend/frontend existirem.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks

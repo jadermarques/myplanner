@@ -1,0 +1,41 @@
+# ===== Segredos — nunca versionar =====
+.env
+*.pem
+credentials*
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ===== Python =====
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ===== Node =====
+node_modules/
+dist/
+build/
+.vite/
+*.local
+
+# ===== Docker =====
+.docker/
+
+# ===== OS / editor =====
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# ===== Spec Kit (estado local por máquina) =====
+# .specify/feature.json já é ignorado em .specify/.gitignore
+.specify/extensions/.cache/
+.specify/extensions/.backup/
+.specify/extensions/*/.specify-dev/

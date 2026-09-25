@@ -1,0 +1,1 @@
+../../.specify/extensions/release/.specify-dev/agent-commands/cline/speckit-release-commit.md

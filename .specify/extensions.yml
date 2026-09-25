@@ -1,0 +1,17 @@
+installed:
+- assess
+- bug
+- release
+settings:
+  auto_execute_hooks: true
+hooks:
+  after_implement:
+  - extension: release
+    command: speckit.release.commit
+    enabled: true
+    optional: false
+    priority: 10
+    prompt: Execute speckit.release.commit?
+    description: Testar, versionar (SemVer), atualizar VERSION, commitar, criar tag
+      e sugerir push (regra A9)
+    condition: null

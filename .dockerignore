@@ -1,0 +1,37 @@
+# Segredos
+.env
+*.pem
+credentials*
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Git
+.git
+.gitignore
+
+# Python
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Node
+node_modules
+dist
+.vite
+
+# Spec Kit (estado local)
+.specify/feature.json
+.specify/extensions/.cache
+
+# Documentação (não entra na imagem de produção)
+docs
+specs
+README.md
+AGENTS.md
