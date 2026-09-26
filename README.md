@@ -67,6 +67,24 @@ gh repo create myplanner --private --source . --remote origin --push
 
    `.env` nunca é versionado (está em `.gitignore` e `.dockerignore`).
 
+## Segredos de autenticação do app
+
+Ainda em `.env`, preencha os segredos da autenticação de usuário único:
+
+```bash
+# Hash da senha (pode ficar vazio: é criado no primeiro acesso pelo próprio app)
+APP_PASSWORD_HASH=
+# Segredo TOTP (base32) — exigido ao registrar um aparelho novo
+APP_TOTP_SECRET=$(python -c "import pyotp; print(pyotp.random_base32())")
+# Chave de assinatura da sessão
+SESSION_SECRET=$(python -c "import secrets; print(secrets.token_urlsafe(32))")
+```
+
+`APP_TOTP_SECRET` deve ser cadastrado **manualmente** no app autenticador
+(Google Authenticator, Authy, 1Password…) como chave de configuração — nesta versão
+não há QR code. Sem esse valor, o login a partir de um aparelho novo falha com
+"TOTP não configurado neste servidor".
+
 ## Ambiente de desenvolvimento
 
 ### Backend (Python)
