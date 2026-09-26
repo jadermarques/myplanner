@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     trello_token: str = ""
     trello: TrelloSettings = TrelloSettings()
 
+    # Auth (feature 003)
+    session_secret: str = "dev-insecure-secret-change-me"
+    app_password_hash: str = ""
+    password_file: Path = REPO_ROOT / "backend" / ".data" / "password_hash"
+
 
 settings = Settings()
 

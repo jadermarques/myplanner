@@ -31,6 +31,9 @@ playwright-report/
 # ===== Docker =====
 .docker/
 
+# ===== Estado local do backend (feature 003) =====
+backend/.data/
+
 # ===== OS / editor =====
 .DS_Store
 .idea/

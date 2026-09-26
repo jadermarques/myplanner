@@ -3,13 +3,14 @@ import { Board, fetchBoards } from '../services/api'
 
 const LAST_USED_KEY = 'myplanner:last_board_id'
 
-export function useBoards() {
+export function useBoards(enabled = true) {
   const [boards, setBoards] = useState<Board[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedBoardId, setSelectedBoardId] = useState('')
 
   useEffect(() => {
+    if (!enabled) return
     fetchBoards()
       .then((list) => {
         setBoards(list)
@@ -19,7 +20,7 @@ export function useBoards() {
       })
       .catch(() => setError('Não foi possível carregar os boards.'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [enabled])
 
   const selectBoard = (boardId: string) => {
     setSelectedBoardId(boardId)

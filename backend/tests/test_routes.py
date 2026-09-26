@@ -1,6 +1,7 @@
 """Integration tests for the HTTP routes with a fake Trello client."""
 from fastapi.testclient import TestClient
 
+from app.api.dependencies import require_auth
 from app.api.routes import get_client
 from app.main import app
 
@@ -21,6 +22,7 @@ class FakeTrelloClient:
 
 def _client() -> TestClient:
     app.dependency_overrides[get_client] = lambda: FakeTrelloClient()
+    app.dependency_overrides[require_auth] = lambda: None
     return TestClient(app)
 
 

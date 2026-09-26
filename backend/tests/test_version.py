@@ -1,13 +1,24 @@
-"""Tests for the version reader and GET /version (contracts/api.md)."""
+"""Tests for the version reader and GET /version (contracts/api.md).
+
+Feature 003 made /version authenticated (S1); the endpoint tests bypass auth.
+"""
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app import config
+from app.api.dependencies import require_auth
 from app.main import app
 from app.version import read_version
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _bypass_auth():
+    app.dependency_overrides[require_auth] = lambda: None
+    yield
 
 
 def test_read_version_returns_trimmed_content(tmp_path: Path) -> None:

@@ -3,3 +3,5 @@ uvicorn[standard]
 pydantic-settings
 pytest
 httpx
+argon2-cffi
+itsdangerous

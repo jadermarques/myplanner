@@ -3,6 +3,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.api.dependencies import require_auth
 from app.application.create_card import create_card as create_card_use_case
 from app.config import settings
 from app.infrastructure.trello_client import TrelloClient
@@ -20,7 +21,7 @@ def get_client() -> TrelloClient:
     return TrelloClient(settings.trello_api_key, settings.trello_token)
 
 
-@router.get("/boards")
+@router.get("/boards", dependencies=[Depends(require_auth)])
 async def list_boards(client: TrelloClient = Depends(get_client)) -> list[dict[str, str]]:
     try:
         return await client.list_boards()
@@ -28,7 +29,7 @@ async def list_boards(client: TrelloClient = Depends(get_client)) -> list[dict[s
         raise _http_from_trello(exc, "erro ao listar boards") from exc
 
 
-@router.post("/cards", status_code=201)
+@router.post("/cards", status_code=201, dependencies=[Depends(require_auth)])
 async def create_card(
     req: CreateCardRequest,
     client: TrelloClient = Depends(get_client),

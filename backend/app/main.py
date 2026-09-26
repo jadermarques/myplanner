@@ -1,15 +1,21 @@
 """MyPlanner backend — FastAPI app exposing health, version, boards and cards.
 
-Health and version are public (temporary exception to S1, documented in the
-spec Clarifications; S1 applies once login is in scope).
+Only `GET /health` is public; everything else requires a session (S1).
 """
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
+from app.api.dependencies import require_auth
+from app.api.middleware import CsrfMiddleware, SecurityHeadersMiddleware, SessionMiddleware
 from app.api.routes import router
+from app.api.routes_auth import router as auth_router
 from app.config import settings
 from app.version import read_version
 
 app = FastAPI(title="MyPlanner")
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(CsrfMiddleware)
+app.add_middleware(SessionMiddleware)
+app.include_router(auth_router)
 app.include_router(router)
 
 
@@ -19,8 +25,9 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/version")
+@app.get("/version", dependencies=[Depends(require_auth)])
 def version() -> dict[str, str]:
     """Current app version (single source: VERSION file)."""
     return {"version": read_version(settings.version_file)}
+
 
