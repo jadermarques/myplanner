@@ -5,3 +5,4 @@ pytest
 httpx
 argon2-cffi
 itsdangerous
+pyotp

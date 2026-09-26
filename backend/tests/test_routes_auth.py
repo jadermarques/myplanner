@@ -22,7 +22,7 @@ def client(store: PasswordStore, monkeypatch) -> TestClient:
 def test_status_reports_password_not_set(client: TestClient) -> None:
     resp = client.get("/auth/status")
     assert resp.status_code == 200
-    assert resp.json() == {"password_set": False, "authenticated": False}
+    assert resp.json() == {"password_set": False, "authenticated": False, "device_registered": False}
 
 
 def test_set_password_then_login(client: TestClient) -> None:

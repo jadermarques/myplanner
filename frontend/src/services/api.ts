@@ -8,6 +8,14 @@ export interface Board {
 export interface AuthStatus {
   password_set: boolean
   authenticated: boolean
+  device_registered: boolean
+}
+
+export interface Device {
+  id: string
+  name: string
+  created_at: string
+  last_used_at: string
 }
 
 function csrfHeaders(): Record<string, string> {
@@ -48,8 +56,8 @@ export async function fetchAuthStatus(): Promise<AuthStatus> {
   return (await res.json()) as AuthStatus
 }
 
-export async function login(password: string): Promise<void> {
-  const res = await postJson('/auth/login', { password })
+export async function login(password: string, totp?: string): Promise<void> {
+  const res = await postJson('/auth/login', { password, totp: totp ?? null })
   if (!res.ok) throw new Error(await detailOr(res, 'Erro ao entrar.'))
 }
 
@@ -68,6 +76,20 @@ export async function changePassword(currentPassword: string, newPassword: strin
 
 export async function logout(): Promise<void> {
   await fetch(`${BASE_URL}/auth/logout`, { method: 'POST' })
+}
+
+export async function fetchDevices(): Promise<Device[]> {
+  const res = await fetch(`${BASE_URL}/devices`)
+  if (!res.ok) throw new Error(`devices request failed: ${res.status}`)
+  return (await res.json()) as Device[]
+}
+
+export async function revokeDevice(deviceId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/devices/${deviceId}/revoke`, {
+    method: 'POST',
+    headers: { ...csrfHeaders() },
+  })
+  if (!res.ok) throw new Error(await detailOr(res, `revoke failed: ${res.status}`))
 }
 
 export async function fetchBoards(): Promise<Board[]> {

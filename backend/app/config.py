@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     app_password_hash: str = ""
     password_file: Path = REPO_ROOT / "backend" / ".data" / "password_hash"
 
+    # Devices (feature 004)
+    app_totp_secret: str = ""
+    device_file: Path = REPO_ROOT / "backend" / ".data" / "devices.json"
+
 
 settings = Settings()
 

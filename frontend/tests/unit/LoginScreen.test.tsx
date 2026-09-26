@@ -9,26 +9,32 @@ vi.mock('../../src/services/api', () => ({
 
 describe('LoginScreen', () => {
   it('renders the password field and submit button', () => {
-    render(<LoginScreen onSuccess={() => {}} />)
+    render(<LoginScreen onSuccess={() => {}} totpRequired={false} />)
     expect(screen.getByLabelText('Senha')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument()
+  })
+
+  it('shows the TOTP field when the device is not registered', () => {
+    render(<LoginScreen onSuccess={() => {}} totpRequired />)
+    expect(screen.getByLabelText('Código TOTP')).toBeInTheDocument()
   })
 
   it('calls login and onSuccess on submit', async () => {
     vi.mocked(login).mockResolvedValue(undefined)
     const onSuccess = vi.fn()
-    render(<LoginScreen onSuccess={onSuccess} />)
+    render(<LoginScreen onSuccess={onSuccess} totpRequired={false} />)
     fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'senha123' } })
     fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
     await waitFor(() => expect(onSuccess).toHaveBeenCalled())
-    expect(login).toHaveBeenCalledWith('senha123')
+    expect(login).toHaveBeenCalledWith('senha123', undefined)
   })
 
   it('shows the error message on failure', async () => {
     vi.mocked(login).mockRejectedValue(new Error('Senha incorreta.'))
-    render(<LoginScreen onSuccess={() => {}} />)
+    render(<LoginScreen onSuccess={() => {}} totpRequired={false} />)
     fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'errada' } })
     fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Senha incorreta.')
   })
 })
+

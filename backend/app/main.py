@@ -8,6 +8,7 @@ from app.api.dependencies import require_auth
 from app.api.middleware import CsrfMiddleware, SecurityHeadersMiddleware, SessionMiddleware
 from app.api.routes import router
 from app.api.routes_auth import router as auth_router
+from app.api.routes_devices import router as devices_router
 from app.config import settings
 from app.version import read_version
 
@@ -16,6 +17,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(CsrfMiddleware)
 app.add_middleware(SessionMiddleware)
 app.include_router(auth_router)
+app.include_router(devices_router)
 app.include_router(router)
 
 

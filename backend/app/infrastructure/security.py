@@ -15,15 +15,18 @@ class SessionManager:
     def __init__(self, secret: str) -> None:
         self._serializer = URLSafeTimedSerializer(secret, salt="session")
 
-    def create(self) -> str:
-        return self._serializer.dumps({"authenticated": True})
+    def create(self, device_id: str = "") -> str:
+        return self._serializer.dumps({"authenticated": True, "device_id": device_id})
+
+    def read(self, token: str) -> dict | None:
+        try:
+            return self._serializer.loads(token, max_age=SESSION_MAX_AGE_SECONDS)
+        except BadSignature:
+            return None
 
     def is_valid(self, token: str) -> bool:
-        try:
-            data = self._serializer.loads(token, max_age=SESSION_MAX_AGE_SECONDS)
-        except BadSignature:
-            return False
-        return bool(data.get("authenticated"))
+        data = self.read(token)
+        return bool(data and data.get("authenticated"))
 
 
 class LockoutTracker:

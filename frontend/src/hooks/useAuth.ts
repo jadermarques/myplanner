@@ -5,10 +5,12 @@ export type AuthState = 'loading' | 'set-password' | 'login' | 'authenticated'
 
 export function useAuth() {
   const [state, setState] = useState<AuthState>('loading')
+  const [deviceRegistered, setDeviceRegistered] = useState(true)
 
   const refresh = useCallback(async () => {
     try {
       const status = await fetchAuthStatus()
+      setDeviceRegistered(status.device_registered)
       if (!status.password_set) setState('set-password')
       else if (status.authenticated) setState('authenticated')
       else setState('login')
@@ -21,5 +23,5 @@ export function useAuth() {
     void refresh()
   }, [refresh])
 
-  return { state, refresh }
+  return { state, deviceRegistered, refresh }
 }
