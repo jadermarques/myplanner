@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test'
 
+test('set-password asks for the TOTP code when the device is not registered', async ({ page }) => {
+  await page.route('**/api/auth/status', (route) =>
+    route.fulfill({ json: { password_set: false, authenticated: false, device_registered: false } }),
+  )
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Definir senha' })).toBeVisible()
+  await expect(page.getByLabel('Código TOTP')).toBeVisible()
+})
+
 test('login shows the TOTP field when the device is not registered', async ({ page }) => {
   await page.route('**/api/auth/status', (route) =>
     route.fulfill({ json: { password_set: true, authenticated: false, device_registered: false } }),

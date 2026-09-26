@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Device, fetchDevices, revokeDevice } from '../services/api'
 
+function formatLastUsed(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
 interface DeviceListProps {
   onBack: () => void
 }
@@ -38,7 +44,10 @@ export default function DeviceList({ onBack }: DeviceListProps) {
       <ul className="device-list">
         {devices.map((device) => (
           <li key={device.id}>
-            <span>{device.name}</span>
+            <span className="device-info">
+              <strong>{device.name}</strong>
+              <small>Último uso: {formatLastUsed(device.last_used_at)}</small>
+            </span>
             <button type="button" onClick={() => handleRevoke(device.id)}>
               Revogar
             </button>

@@ -92,3 +92,18 @@
 - Sessão vinculada ao aparelho (ADR 0003); TOTP via `pyotp`; sem banco de dados.
 - `[P]` = arquivos distintos, sem dependência.
 - Alterar teste existente exige aprovação humana (regra de ouro).
+
+## Phase 8: Convergence
+
+> Resultado do `/speckit.converge` de 2026-09-25 (ver tabela de findings na sessão).
+> Ordem: CRITICAL/HIGH primeiro. TDD continua obrigatório (constituição III).
+
+- [X] T020 [P] Write test `backend/tests/test_devices_flow.py` (RED): registrar aparelho via `POST /auth/set-password` sem `totp` deve falhar; com `APP_TOTP_SECRET` vazio, falhar de forma controlada — per FR-001, SC-001, S4, spec Edge Case (contradicts)
+- [X] T021 Exigir TOTP em `POST /auth/set-password` (`backend/app/api/routes_auth.py`) — ou deixar de registrar aparelho nesse fluxo — de modo que TODO registro de aparelho exija senha + TOTP válidos, removendo o "bootstrap sem TOTP" — per FR-001, SC-001, S4, data-model (contradicts)
+- [X] T022 [P] Write test `backend/tests/test_routes_devices.py` (RED): após uso autenticado, `GET /devices` mostra `last_used_at` posterior ao `created_at` — per FR-004, US2/AC1, data-model (partial)
+- [X] T023 Atualizar `last_used_at` a cada requisição autenticada de aparelho conhecido (chamar `DeviceStore.touch` em `backend/app/api/middleware.py` ou `routes_auth.py`) — per FR-004, US2/AC1, data-model (partial)
+- [X] T024 [P] Write test `frontend/tests/unit/DeviceList.test.tsx` (RED) e exibir o último uso em `frontend/src/components/DeviceList.tsx` (formato pt-BR) — per US2/AC1 (partial)
+- [X] T025 Definir `Secure` nos cookies de sessão, CSRF e aparelho (`routes_auth.py`, `middleware.py`), dirigido por configuração para não quebrar o acesso por HTTP em desenvolvimento — per FR-003, S3 (partial)
+- [X] T026 [P] Alinhar a sessão com `data-model.md` (incluir `expires_at` no payload) ou documentar no data-model a derivação via `max_age` do itsdangerous — per data-model (partial)
+- [X] T027 [P] Corrigir em `specs/004-dispositivos/plan.md` o caminho `api/security.py` → `infrastructure/security.py` — rastreabilidade (partial)
+

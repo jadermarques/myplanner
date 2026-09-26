@@ -73,11 +73,11 @@ backend/app/
 │   └── devices.py           # registrar, listar, revogar aparelhos
 ├── infrastructure/
 │   ├── device_store.py      # CRUD de aparelhos (arquivo gitignorado)
+│   ├── security.py          # sessão passa a incluir device_id
 │   └── totp.py              # wrapper pyotp (valid_window=1)
 ├── api/
 │   ├── routes_devices.py    # GET /devices, POST /devices/{id}/revoke
-│   ├── routes_auth.py       # login passa a aceitar `totp`
-│   └── security.py          # sessão passa a incluir device_id
+│   └── routes_auth.py       # login/set-password passam a exigir `totp`
 ├── config.py                # + APP_TOTP_SECRET
 
 frontend/src/

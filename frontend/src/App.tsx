@@ -41,7 +41,9 @@ export default function App() {
           Carregando…
         </p>
       )}
-      {state === 'set-password' && <SetPasswordScreen onSuccess={refresh} />}
+      {state === 'set-password' && (
+        <SetPasswordScreen onSuccess={refresh} totpRequired={!deviceRegistered} />
+      )}
       {state === 'login' && <LoginScreen onSuccess={refresh} totpRequired={!deviceRegistered} />}
       {state === 'authenticated' && (
         <main className="home">

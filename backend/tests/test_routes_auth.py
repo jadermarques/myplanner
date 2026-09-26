@@ -1,11 +1,14 @@
 """Integration tests for the auth routes."""
 from pathlib import Path
 
+import pyotp
 import pytest
 from fastapi.testclient import TestClient
 
 from app.infrastructure.password_store import PasswordStore
 from app.main import app
+
+SECRET = pyotp.random_base32()
 
 
 @pytest.fixture
@@ -16,7 +19,16 @@ def store(tmp_path: Path) -> PasswordStore:
 @pytest.fixture
 def client(store: PasswordStore, monkeypatch) -> TestClient:
     monkeypatch.setattr("app.api.routes_auth.get_password_store", lambda: store)
+    monkeypatch.setattr("app.config.settings.app_totp_secret", SECRET)
     return TestClient(app)
+
+
+def _register(client: TestClient, password: str = "senha123") -> None:
+    """First access now demands password + TOTP (FR-001/S4, feature 004)."""
+    client.post(
+        "/auth/set-password",
+        json={"password": password, "totp": pyotp.TOTP(SECRET).now()},
+    )
 
 
 def test_status_reports_password_not_set(client: TestClient) -> None:
@@ -26,9 +38,8 @@ def test_status_reports_password_not_set(client: TestClient) -> None:
 
 
 def test_set_password_then_login(client: TestClient) -> None:
-    resp = client.post("/auth/set-password", json={"password": "senha123"})
-    assert resp.status_code == 200
-    assert "session" in resp.cookies
+    _register(client)
+    assert "session" in client.cookies
 
     client.post("/auth/logout")
     resp = client.post("/auth/login", json={"password": "senha123"})
@@ -36,7 +47,7 @@ def test_set_password_then_login(client: TestClient) -> None:
 
 
 def test_login_wrong_password(client: TestClient) -> None:
-    client.post("/auth/set-password", json={"password": "senha123"})
+    _register(client)
     client.post("/auth/logout")
     resp = client.post("/auth/login", json={"password": "errada"})
     assert resp.status_code == 401
@@ -44,7 +55,11 @@ def test_login_wrong_password(client: TestClient) -> None:
 
 
 def test_set_password_rejects_weak(client: TestClient) -> None:
-    resp = client.post("/auth/set-password", json={"password": "curta"})
+    # a valid TOTP is sent so the weak-password rule is what rejects the request
+    resp = client.post(
+        "/auth/set-password",
+        json={"password": "curta", "totp": pyotp.TOTP(SECRET).now()},
+    )
     assert resp.status_code == 400
 
 

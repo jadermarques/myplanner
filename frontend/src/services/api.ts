@@ -61,8 +61,8 @@ export async function login(password: string, totp?: string): Promise<void> {
   if (!res.ok) throw new Error(await detailOr(res, 'Erro ao entrar.'))
 }
 
-export async function setPassword(password: string): Promise<void> {
-  const res = await postJson('/auth/set-password', { password })
+export async function setPassword(password: string, totp?: string): Promise<void> {
+  const res = await postJson('/auth/set-password', { password, totp: totp ?? null })
   if (!res.ok) throw new Error(await detailOr(res, 'Erro ao definir a senha.'))
 }
 

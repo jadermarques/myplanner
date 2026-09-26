@@ -51,6 +51,7 @@ def _start_session(response: Response, device_id: str) -> None:
         _sessions.create(device_id),
         httponly=True,
         samesite="strict",
+        secure=settings.cookie_secure,
         max_age=SESSION_MAX_AGE_SECONDS,
     )
     response.set_cookie(
@@ -58,6 +59,7 @@ def _start_session(response: Response, device_id: str) -> None:
         new_csrf_token(),
         httponly=False,
         samesite="strict",
+        secure=settings.cookie_secure,
         max_age=SESSION_MAX_AGE_SECONDS,
     )
 
@@ -68,6 +70,7 @@ def _set_device_cookie(response: Response, device_id: str) -> None:
         device_id,
         httponly=True,
         samesite="strict",
+        secure=settings.cookie_secure,
         max_age=DEVICE_COOKIE_MAX_AGE,
     )
 
@@ -90,15 +93,20 @@ def status(request: Request) -> dict[str, bool]:
 
 @router.post("/set-password")
 def set_password_route(body: PasswordBody, request: Request, response: Response) -> dict:
+    store, (_, device) = _registered_device(request)
+    if device is None:
+        # Registering a device always demands password + TOTP (FR-001, S4).
+        if not settings.app_totp_secret:
+            raise HTTPException(status_code=400, detail="TOTP não configurado neste servidor")
+        if not body.totp or not verify_totp(settings.app_totp_secret, body.totp):
+            raise HTTPException(status_code=401, detail="Código TOTP inválido.")
     try:
         set_password(get_password_store(), body.password)
     except (AuthError, WeakPasswordError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    # Bootstrap: register the first device without TOTP.
-    store, (_, device) = _registered_device(request)
     if device is None:
         device = register_device(store, request.headers.get("user-agent", ""))
-    _set_device_cookie(response, device.id)
+        _set_device_cookie(response, device.id)
     _start_session(response, device.id)
     return {}
 

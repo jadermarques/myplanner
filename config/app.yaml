@@ -19,6 +19,11 @@ trello:
 
 session:
   duration_days: 90
+  # Flag Secure dos cookies (S3). Fica `false` em desenvolvimento (acesso HTTP na LAN)
+  # e DEVE ser `true` em produção (HTTPS obrigatório, S7).
+  # Obs.: o carregamento deste YAML ainda não está ligado — hoje o valor vem da
+  # variável de ambiente COOKIE_SECURE (default: false).
+  cookie_secure: false
 
 ui:
   default_board: last_used

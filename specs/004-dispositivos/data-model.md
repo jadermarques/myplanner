@@ -16,8 +16,10 @@ Sem banco de dados. Aparelhos em `backend/.data/devices.json` (gitignorado).
 - **Regras**: criado apenas após senha + TOTP válidos (S4); revogado deixa de ser válido (FR-006).
 
 ### Sessão (estendida)
-- **Atributos**: `authenticated`, `device_id`, `expires_at`.
-- **Regras**: válida apenas se `device_id` ainda estiver registrado (revogação invalida).
+- **Atributos**: `authenticated`, `device_id`. A expiração não é um campo do payload: é
+  imposta pela assinatura com `max_age` de 90 dias (`itsdangerous`), renovada a cada uso.
+- **Regras**: válida apenas se `device_id` ainda estiver registrado (revogação invalida);
+  cada requisição autenticada atualiza o `last_used_at` do aparelho.
 
 ## Transições de estado
 

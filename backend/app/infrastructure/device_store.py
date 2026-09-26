@@ -41,12 +41,17 @@ class DeviceStore:
         )
         self._write(devices)
 
-    def touch(self, device_id: str, now: str) -> None:
+    def touch(self, device_id: str, now: str) -> bool:
+        """Record `now` as the device's last use; return False if unknown."""
         devices = self._read()
+        found = False
         for item in devices:
             if item["id"] == device_id:
                 item["last_used_at"] = now
-        self._write(devices)
+                found = True
+        if found:
+            self._write(devices)
+        return found
 
     def remove(self, device_id: str) -> bool:
         devices = self._read()

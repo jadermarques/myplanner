@@ -24,7 +24,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
         payload = _sessions.read(token) if token else None
         device_id = (payload or {}).get("device_id", "") or ""
         authenticated = bool(payload and payload.get("authenticated"))
-        if authenticated and device_id and not _device_exists(device_id):
+        if authenticated and device_id and not _touch_device(device_id):
             authenticated = False  # device revoked (FR-006)
         request.state.authenticated = authenticated
         request.state.device_id = device_id
@@ -36,15 +36,17 @@ class SessionMiddleware(BaseHTTPMiddleware):
                 _sessions.create(device_id),
                 httponly=True,
                 samesite="strict",
+                secure=settings.cookie_secure,
                 max_age=SESSION_MAX_AGE_SECONDS,
             )
         return response
 
 
-def _device_exists(device_id: str) -> bool:
-    from app.application.devices import get_device_store
+def _touch_device(device_id: str) -> bool:
+    """Record the device's last use (FR-004); False when it is not registered."""
+    from app.application.devices import get_device_store, now_iso
 
-    return get_device_store().get(device_id) is not None
+    return get_device_store().touch(device_id, now_iso())
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

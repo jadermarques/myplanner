@@ -22,4 +22,21 @@ describe('DeviceList', () => {
     await waitFor(() => expect(revokeDevice).toHaveBeenCalledWith('d1'))
     await waitFor(() => expect(screen.queryByText('Chrome no Android')).not.toBeInTheDocument())
   })
+
+  it('shows the last use of each device (US2/AC1)', async () => {
+    vi.mocked(fetchDevices).mockResolvedValue([
+      {
+        id: 'd1',
+        name: 'Chrome no Android',
+        created_at: '2026-09-25T12:00:00+00:00',
+        last_used_at: '2026-09-25T12:00:00+00:00',
+      },
+    ])
+
+    render(<DeviceList onBack={() => {}} />)
+    const lastUsed = await screen.findByText(/^Último uso: /)
+    // formatted for humans (pt-BR date/time), never the raw ISO string
+    expect(lastUsed.textContent).toMatch(/\d{2}\/\d{2}\/\d{4}/)
+    expect(lastUsed.textContent).not.toContain('T12:00:00')
+  })
 })

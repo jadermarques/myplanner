@@ -26,6 +26,13 @@ def test_touch_updates_last_used(tmp_path: Path) -> None:
     assert store.get("d1").last_used_at == "later"
 
 
+def test_touch_reports_whether_device_exists(tmp_path: Path) -> None:
+    store = DeviceStore(tmp_path / "devices.json")
+    store.add(Device(id="d1", name="X", created_at="c", last_used_at="c"))
+    assert store.touch("d1", "later") is True
+    assert store.touch("ausente", "later") is False
+
+
 def test_derive_device_name() -> None:
     from app.domain.device import derive_device_name
 

@@ -1,4 +1,6 @@
 """Tests for the device management routes."""
+import time
+
 import pyotp
 import pytest
 from fastapi.testclient import TestClient
@@ -16,7 +18,11 @@ def client(monkeypatch) -> TestClient:
 
 
 def _auth(client: TestClient) -> None:
-    client.post("/auth/set-password", json={"password": "senha123"})
+    """Set the password and register the device (password + TOTP)."""
+    client.post(
+        "/auth/set-password",
+        json={"password": "senha123", "totp": pyotp.TOTP(SECRET).now()},
+    )
 
 
 def test_list_devices(client: TestClient) -> None:
@@ -48,3 +54,15 @@ def test_revoke_unknown_device_404(client: TestClient) -> None:
 def test_devices_require_session() -> None:
     fresh = TestClient(app)
     assert fresh.get("/devices").status_code == 401
+
+
+def test_last_used_at_is_updated_on_use(client: TestClient) -> None:
+    """FR-004 / US2-AC1: the device list carries the last use."""
+    _auth(client)
+    first = client.get("/devices").json()[0]["last_used_at"]
+
+    time.sleep(0.01)
+    assert client.get("/version").status_code == 200
+
+    second = client.get("/devices").json()[0]["last_used_at"]
+    assert second > first

@@ -148,7 +148,8 @@ sudo chown -R deploy:deploy /opt/myplanner
 
 ### 4. `.env` e certificado HTTPS por IP
 
-- Crie `/opt/myplanner/.env` com os segredos (`TRELLO_*`, `APP_*`, `SESSION_SECRET`, `LLM_*`).
+- Crie `/opt/myplanner/.env` com os segredos (`TRELLO_*`, `APP_*`, `SESSION_SECRET`, `LLM_*`)
+  e defina `COOKIE_SECURE=true` (cookies `Secure` são obrigatórios em produção — S3/S7).
 - Certificado Let's Encrypt de IP (perfil shortlived, ~6 dias) com renovação automática.
   A escolha do proxy (Certbot + Nginx ou Caddy) é definida na spec 002.
 
