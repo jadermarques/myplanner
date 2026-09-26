@@ -21,9 +21,12 @@ htmlcov/
 # ===== Node =====
 node_modules/
 dist/
+dev-dist/
 build/
 .vite/
 *.local
+test-results/
+playwright-report/
 
 # ===== Docker =====
 .docker/
