@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { setPassword } from '../services/api'
+import { setPassword as submitPassword } from '../services/api'
 
 interface SetPasswordScreenProps {
   onSuccess: () => void
@@ -18,7 +18,7 @@ export default function SetPasswordScreen({ onSuccess }: SetPasswordScreenProps)
       return
     }
     try {
-      await setPassword(password)
+      await submitPassword(password)
       onSuccess()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao definir a senha.')
