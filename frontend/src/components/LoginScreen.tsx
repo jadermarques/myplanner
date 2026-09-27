@@ -21,19 +21,35 @@ export default function LoginScreen({ onSuccess }: LoginScreenProps) {
   }
 
   return (
-    <main className="home">
-      <h1 className="title">Entrar</h1>
-      <form onSubmit={handleSubmit} className="card-form" aria-label="Login">
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Senha"
-          aria-label="Senha"
-        />
-        <button type="submit">Entrar</button>
+    <main className="auth">
+      <div className="auth__brand">
+        <h1 className="auth__title">Entrar</h1>
+        <p className="auth__subtitle">MyPlanner — cards no Trello em segundos.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} aria-label="Login">
+        <div className="field">
+          <label className="field__label" htmlFor="login-password">
+            Senha
+          </label>
+          <input
+            id="login-password"
+            className="input"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Sua senha"
+            autoComplete="current-password"
+            autoFocus
+          />
+        </div>
+
+        <button type="submit" className="button button--primary button--block">
+          Entrar
+        </button>
+
         {error && (
-          <p className="error" role="alert">
+          <p className="msg msg--error" role="alert">
             {error}
           </p>
         )}
@@ -41,4 +57,5 @@ export default function LoginScreen({ onSuccess }: LoginScreenProps) {
     </main>
   )
 }
+
 

@@ -1,26 +1,24 @@
-import { useState } from 'react'
-import BoardSelect from './BoardSelect'
+import { useRef, useState } from 'react'
 import PrioritySelect from './PrioritySelect'
-import { Board, createCard } from '../services/api'
+import { createCard } from '../services/api'
 
 /** Same limit the domain enforces (backend is the authority). */
 const MAX_DESCRIPTION_CHARS = 2000
 
 interface CardFormProps {
-  boards: Board[]
-  loading: boolean
-  error: string | null
   selectedBoardId: string
-  onSelectBoard: (boardId: string) => void
+  boardsLoading: boolean
+  boardsError: string | null
 }
 
-export default function CardForm({
-  boards,
-  loading,
-  error,
-  selectedBoardId,
-  onSelectBoard,
-}: CardFormProps) {
+/**
+ * Captura rápida: o título já vem focado (o primeiro card não custa nenhum
+ * toque preparatório), a prioridade é escolhida com um toque e a ação de salvar
+ * fica na barra fixa, sempre alcançável. Depois do sucesso o foco volta ao
+ * título, para lançar vários cards em série. A prioridade escolhida é mantida
+ * entre cards (numa sequência de itens iguais isso economiza toques).
+ */
+export default function CardForm({ selectedBoardId, boardsLoading, boardsError }: CardFormProps) {
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState('')
   const [description, setDescription] = useState('')
@@ -29,14 +27,17 @@ export default function CardForm({
   const [saveError, setSaveError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [saving, setSaving] = useState(false)
+  const titleRef = useRef<HTMLInputElement | null>(null)
 
   const descriptionTooLong = description.length > MAX_DESCRIPTION_CHARS
+  const canSave = !saving && Boolean(selectedBoardId) && !descriptionTooLong
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) {
       setTitleError('O título é obrigatório.')
       setSuccess(false)
+      titleRef.current?.focus()
       return
     }
     setTitleError(null)
@@ -54,6 +55,7 @@ export default function CardForm({
       setTitle('')
       setDescription('')
       setDescriptionOpen(false)
+      titleRef.current?.focus()
     } catch (err) {
       setSuccess(false)
       setSaveError(err instanceof Error ? err.message : 'Erro ao salvar o card. Tente novamente.')
@@ -63,44 +65,63 @@ export default function CardForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card-form" aria-label="Inserir card">
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Título do card"
-        aria-label="Título"
-        maxLength={512}
-        disabled={saving}
-      />
-      {titleError && (
-        <p className="error" role="alert">
-          {titleError}
-        </p>
-      )}
+    <form className="capture" onSubmit={handleSubmit} aria-label="Inserir card">
+      <div className="field">
+        <label className="field__label" htmlFor="card-title">
+          Título
+        </label>
+        <input
+          id="card-title"
+          ref={titleRef}
+          className="input input--title"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="O que precisa ser feito?"
+          maxLength={512}
+          autoFocus
+          disabled={saving}
+          enterKeyHint="done"
+        />
+        {titleError && (
+          <p className="msg msg--error" role="alert">
+            {titleError}
+          </p>
+        )}
+      </div>
 
-      <BoardSelect boards={boards} value={selectedBoardId} onChange={onSelectBoard} />
-      {loading && <p>Carregando boards…</p>}
-      {error && <p className="error">{error}</p>}
-
-      <PrioritySelect value={priority} onChange={setPriority} />
+      <div className="field">
+        <span className="field__label" aria-hidden="true">
+          Prioridade
+        </span>
+        <PrioritySelect value={priority} onChange={setPriority} />
+      </div>
 
       {descriptionOpen ? (
-        <div className="description-field">
+        <div className="field">
+          <label className="field__label" htmlFor="card-description">
+            Descrição
+          </label>
           <textarea
+            id="card-description"
+            className="input"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Descrição (opcional)"
-            aria-label="Descrição"
+            placeholder="Contexto, links, checklist… (opcional)"
             rows={4}
             autoFocus
             disabled={saving}
           />
-          <span className={descriptionTooLong ? 'counter over' : 'counter'} aria-live="polite">
-            {description.length}/{MAX_DESCRIPTION_CHARS}
-          </span>
+          <div className="counter-row">
+            <span
+              className={descriptionTooLong ? 'counter counter--over' : 'counter'}
+              aria-live="polite"
+            >
+              {description.length}/{MAX_DESCRIPTION_CHARS}
+            </span>
+          </div>
           {descriptionTooLong && (
-            <p className="error" role="alert">
+            <p className="msg msg--error" role="alert">
               A descrição passa de {MAX_DESCRIPTION_CHARS} caracteres. Reduza para salvar.
             </p>
           )}
@@ -108,7 +129,7 @@ export default function CardForm({
       ) : (
         <button
           type="button"
-          className="link-button"
+          className="ghost-link"
           onClick={() => setDescriptionOpen(true)}
           disabled={saving}
         >
@@ -116,20 +137,26 @@ export default function CardForm({
         </button>
       )}
 
-      <button type="submit" disabled={saving || loading || !selectedBoardId || descriptionTooLong}>
-        {saving ? 'Salvando…' : 'Salvar'}
-      </button>
-
+      {boardsLoading && <p className="msg msg--info">Carregando board…</p>}
+      {boardsError && <p className="msg msg--error">{boardsError}</p>}
       {saveError && (
-        <p className="error" role="alert">
+        <p className="msg msg--error" role="alert">
           {saveError}
         </p>
       )}
       {success && (
-        <p className="success" role="status">
-          Card criado!
-        </p>
+        <div className="toast">
+          <p className="toast__text" role="status">
+            Card criado!
+          </p>
+        </div>
       )}
+
+      <div className="action-bar">
+        <button type="submit" className="button button--primary button--block" disabled={!canSave}>
+          {saving ? 'Salvando…' : 'Salvar'}
+        </button>
+      </div>
     </form>
   )
 }

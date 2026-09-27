@@ -9,18 +9,8 @@ vi.mock('../../src/services/api', () => ({
 
 const mockedCreateCard = createCard as Mock
 
-const boards = [{ id: 'b1', name: 'Pessoal' }]
-
 function renderForm() {
-  return render(
-    <CardForm
-      boards={boards}
-      loading={false}
-      error={null}
-      selectedBoardId="b1"
-      onSelectBoard={() => {}}
-    />,
-  )
+  return render(<CardForm selectedBoardId="b1" boardsLoading={false} boardsError={null} />)
 }
 
 const openDescription = () =>
@@ -124,6 +114,17 @@ describe('CardForm', () => {
     fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'x'.repeat(2000) } })
     expect(screen.getByText('2000/2000')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeEnabled()
+  })
+
+  it('returns the focus to the title after a successful save (FR-007)', async () => {
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    renderForm()
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Card criado!'))
+    expect(screen.getByLabelText('Título')).toHaveValue('')
+    expect(screen.getByLabelText('Título')).toHaveFocus()
   })
 })
 

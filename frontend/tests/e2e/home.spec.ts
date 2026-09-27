@@ -12,6 +12,11 @@ test('home screen shows the "Inserir card" heading and the version', async ({ pa
   await expect(page.getByRole('heading', { name: 'Inserir card' })).toBeVisible()
   await expect(page.getByLabel('Título')).toBeVisible()
   await expect(page.locator('footer')).toHaveText(/v\d+\.\d+\.\d+/)
+
+  // FR-003: o campo principal de captura respeita o alvo de toque mínimo
+  const box = await page.getByLabel('Título').boundingBox()
+  expect(box).not.toBeNull()
+  expect(box!.height).toBeGreaterThanOrEqual(48)
 })
 
 

@@ -25,35 +25,64 @@ export default function ChangePasswordScreen({ onDone }: ChangePasswordScreenPro
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card-form" aria-label="Trocar senha">
-      <input
-        type="password"
-        value={current}
-        onChange={(e) => setCurrent(e.target.value)}
-        placeholder="Senha atual"
-        aria-label="Senha atual"
-      />
-      <input
-        type="password"
-        value={next}
-        onChange={(e) => setNext(e.target.value)}
-        placeholder="Nova senha"
-        aria-label="Nova senha"
-      />
-      <button type="submit">Trocar</button>
-      <button type="button" onClick={onDone}>
-        Voltar
-      </button>
+    <form className="capture" onSubmit={handleSubmit} aria-label="Trocar senha">
+      <div className="field">
+        <label className="field__label" htmlFor="current-password">
+          Senha atual
+        </label>
+        <input
+          id="current-password"
+          className="input"
+          type="password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          placeholder="Senha atual"
+          autoComplete="current-password"
+        />
+      </div>
+
+      <div className="field">
+        <label className="field__label" htmlFor="next-password">
+          Nova senha
+        </label>
+        <input
+          id="next-password"
+          className="input"
+          type="password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          placeholder="Mínimo 8 caracteres"
+          autoComplete="new-password"
+        />
+      </div>
+
       {error && (
-        <p className="error" role="alert">
+        <p className="msg msg--error" role="alert">
           {error}
         </p>
       )}
       {done && (
-        <p className="success" role="status">
-          Senha alterada!
-        </p>
+        <div className="toast">
+          <p className="toast__text" role="status">
+            Senha alterada!
+          </p>
+        </div>
       )}
+
+      <div className="action-bar">
+        <button type="submit" className="button button--primary button--block">
+          Trocar
+        </button>
+        <button
+          type="button"
+          className="button button--block"
+          style={{ marginTop: 'var(--space-2)', background: 'transparent', color: 'var(--muted)' }}
+          onClick={onDone}
+        >
+          Voltar
+        </button>
+      </div>
     </form>
   )
 }
+
