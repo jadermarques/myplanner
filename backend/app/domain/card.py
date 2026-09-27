@@ -1,4 +1,4 @@
-"""Card domain entity and its invariants (R3; R4 was revoked by feature 006)."""
+"""Card domain entity and its invariants (R3; R4 was revoked by feature 006; R7 added by 008)."""
 from dataclasses import dataclass
 
 MAX_DESCRIPTION_CHARS = 2000
@@ -10,6 +10,7 @@ class Card:
     board_id: str
     priority: str | None = None
     description: str | None = None
+    label: str | None = None
 
     def __post_init__(self) -> None:
         if not self.title or not self.title.strip():
@@ -17,6 +18,19 @@ class Card:
         if not self.board_id or not self.board_id.strip():
             raise ValueError("board_id is required")
         object.__setattr__(self, "description", _normalize_description(self.description))
+        object.__setattr__(self, "label", _normalize_label(self.label))
+
+
+def _normalize_label(label: str | None) -> str | None:
+    """Trim the edges; blank means "no label" (R7).
+
+    The label is only a name already seen on the board: it is never validated here, because
+    the board is the authority — a label that no longer exists simply is not applied.
+    """
+    if label is None:
+        return None
+    text = label.strip()
+    return text or None
 
 
 def _normalize_description(description: str | None) -> str | None:

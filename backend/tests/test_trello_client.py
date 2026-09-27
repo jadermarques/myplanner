@@ -113,3 +113,29 @@ def test_retries_on_429() -> None:
         _run(client.aclose())
     assert boards == [{"id": "b1", "name": "Pessoal"}]
     assert calls["n"] == 3
+
+
+def test_list_labels_returns_named_labels_with_their_colour() -> None:
+    """FR-001/FR-002/FR-011: named labels with colour; nameless ones are not offered."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/1/boards/b1/labels"
+        assert request.url.params["fields"] == "id,name,color"
+        return httpx.Response(
+            200,
+            json=[
+                {"id": "l1", "name": "Casa", "color": "green"},
+                {"id": "l2", "name": "", "color": "red"},
+                {"id": "l3", "name": "Trabalho", "color": None},
+            ],
+        )
+
+    client = _make_client(handler)
+    try:
+        labels = _run(client.list_labels("b1"))
+    finally:
+        _run(client.aclose())
+    assert labels == [
+        {"name": "Casa", "color": "green"},
+        {"name": "Trabalho", "color": ""},
+    ]

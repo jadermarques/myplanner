@@ -50,3 +50,18 @@ def test_card_rejects_description_above_the_limit() -> None:
     """R6: the description is capped at MAX_DESCRIPTION_CHARS characters."""
     with pytest.raises(ValueError):
         Card(title="T", board_id="b", description="x" * (MAX_DESCRIPTION_CHARS + 1))
+
+
+def test_card_without_label_stays_none() -> None:
+    """R7: the label is optional and starts empty."""
+    assert Card(title="T", board_id="b").label is None
+
+
+def test_card_normalizes_a_blank_label() -> None:
+    """R7: a blank label means "no label"."""
+    for blank in ("", "   ", "\n\n", "  \t "):
+        assert Card(title="T", board_id="b", label=blank).label is None
+
+
+def test_card_keeps_the_label_name_intact() -> None:
+    assert Card(title="T", board_id="b", label="  Casa  ").label == "Casa"

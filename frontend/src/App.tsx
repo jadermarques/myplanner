@@ -8,6 +8,7 @@ import SetPasswordScreen from './components/SetPasswordScreen'
 import { useAuth } from './hooks/useAuth'
 import { useBoards } from './hooks/useBoards'
 import { useKeyboardInset } from './hooks/useKeyboardInset'
+import { useLabels } from './hooks/useLabels'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { fetchVersion, logout } from './services/api'
 
@@ -21,6 +22,9 @@ export default function App() {
   const toolsRef = useRef<HTMLDivElement | null>(null)
   const { boards, loading, error, selectedBoardId, selectBoard } = useBoards(
     state === 'authenticated',
+  )
+  const { labels, selectedLabel, selectLabel } = useLabels(
+    state === 'authenticated' ? selectedBoardId : '',
   )
 
   useEffect(() => {
@@ -125,6 +129,9 @@ export default function App() {
                 selectedBoardId={selectedBoardId}
                 boardsLoading={loading}
                 boardsError={error}
+                labels={labels}
+                selectedLabel={selectedLabel}
+                onSelectLabel={selectLabel}
               />
             )}
 

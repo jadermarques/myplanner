@@ -9,8 +9,20 @@ vi.mock('../../src/services/api', () => ({
 
 const mockedCreateCard = createCard as Mock
 
-function renderForm() {
-  return render(<CardForm selectedBoardId="b1" boardsLoading={false} boardsError={null} />)
+const labels = [{ name: 'Casa', color: 'green' }]
+
+function renderForm(overrides: Partial<React.ComponentProps<typeof CardForm>> = {}) {
+  return render(
+    <CardForm
+      selectedBoardId="b1"
+      boardsLoading={false}
+      boardsError={null}
+      labels={labels}
+      selectedLabel=""
+      onSelectLabel={() => {}}
+      {...overrides}
+    />,
+  )
 }
 
 const openDescription = () =>
@@ -39,7 +51,7 @@ describe('CardForm', () => {
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Card criado!'))
-    expect(mockedCreateCard).toHaveBeenCalledWith('Comprar leite', 'b1', undefined, undefined)
+    expect(mockedCreateCard).toHaveBeenCalledWith('Comprar leite', 'b1', undefined, undefined, undefined)
   })
 
   it('keeps the description collapsed by default (FR-001)', () => {
@@ -62,7 +74,13 @@ describe('CardForm', () => {
     fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'linha 1\nlinha 2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
     await waitFor(() =>
-      expect(mockedCreateCard).toHaveBeenCalledWith('Comprar leite', 'b1', undefined, 'linha 1\nlinha 2'),
+      expect(mockedCreateCard).toHaveBeenCalledWith(
+        'Comprar leite',
+        'b1',
+        undefined,
+        'linha 1\nlinha 2',
+        undefined,
+      ),
     )
   })
 
@@ -125,6 +143,59 @@ describe('CardForm', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Card criado!'))
     expect(screen.getByLabelText('Título')).toHaveValue('')
     expect(screen.getByLabelText('Título')).toHaveFocus()
+  })
+
+  it('sends the chosen label together with the card (FR-006)', async () => {
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    renderForm({ selectedLabel: 'Casa' })
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() =>
+      expect(mockedCreateCard).toHaveBeenCalledWith(
+        'Comprar leite',
+        'b1',
+        undefined,
+        undefined,
+        'Casa',
+      ),
+    )
+  })
+
+  it('sends no label when none is chosen (SC-002)', async () => {
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    renderForm()
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() =>
+      expect(mockedCreateCard).toHaveBeenCalledWith(
+        'Comprar leite',
+        'b1',
+        undefined,
+        undefined,
+        undefined,
+      ),
+    )
+  })
+
+  it('shows the label choices of the board, and lets the user pick one (FR-003)', () => {
+    const onSelectLabel = vi.fn()
+    renderForm({
+      labels: [
+        { name: 'Casa', color: 'green' },
+        { name: 'Trabalho', color: 'blue' },
+      ],
+      onSelectLabel,
+    })
+    fireEvent.click(screen.getByLabelText('Trabalho'))
+    expect(onSelectLabel).toHaveBeenCalledWith('Trabalho')
+  })
+
+  it('does not show the label item when the board has no labels (FR-008)', () => {
+    renderForm({ labels: [] })
+    expect(screen.queryByRole('radiogroup', { name: 'Etiqueta' })).not.toBeInTheDocument()
+    expect(screen.getByRole('radiogroup', { name: 'Prioridade' })).toBeInTheDocument()
   })
 })
 

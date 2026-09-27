@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
+import LabelSelect from './LabelSelect'
 import PrioritySelect from './PrioritySelect'
-import { createCard } from '../services/api'
+import { Label, createCard } from '../services/api'
 
 /** Same limit the domain enforces (backend is the authority). */
 const MAX_DESCRIPTION_CHARS = 2000
@@ -9,6 +10,9 @@ interface CardFormProps {
   selectedBoardId: string
   boardsLoading: boolean
   boardsError: string | null
+  labels: Label[]
+  selectedLabel: string
+  onSelectLabel: (label: string) => void
 }
 
 /**
@@ -18,7 +22,14 @@ interface CardFormProps {
  * título, para lançar vários cards em série. A prioridade escolhida é mantida
  * entre cards (numa sequência de itens iguais isso economiza toques).
  */
-export default function CardForm({ selectedBoardId, boardsLoading, boardsError }: CardFormProps) {
+export default function CardForm({
+  selectedBoardId,
+  boardsLoading,
+  boardsError,
+  labels,
+  selectedLabel,
+  onSelectLabel,
+}: CardFormProps) {
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState('')
   const [description, setDescription] = useState('')
@@ -50,6 +61,7 @@ export default function CardForm({ selectedBoardId, boardsLoading, boardsError }
         selectedBoardId,
         priority || undefined,
         description.trim() || undefined,
+        selectedLabel || undefined,
       )
       setSuccess(true)
       setTitle('')
@@ -96,6 +108,15 @@ export default function CardForm({ selectedBoardId, boardsLoading, boardsError }
         </span>
         <PrioritySelect value={priority} onChange={setPriority} />
       </div>
+
+      {labels.length > 0 && (
+        <div className="field">
+          <span className="field__label" aria-hidden="true">
+            Etiqueta
+          </span>
+          <LabelSelect labels={labels} value={selectedLabel} onChange={onSelectLabel} />
+        </div>
+      )}
 
       {descriptionOpen ? (
         <div className="field">

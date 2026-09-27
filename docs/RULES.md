@@ -17,6 +17,10 @@ código (ex.: `R3`). Ver `docs/TESTS_STRATEGY.md`.
 - **R6**: A descrição do card é **opcional**, limitada a **2.000 caracteres**, existe apenas na
   criação (não há edição) e é enviada ao Trello exatamente como digitada — sem formatação
   interpretada e sem alterar quebras de linha.
+- **R7**: A etiqueta do card é **opcional** e só é aplicada se **existir no board** no momento da
+  criação; se tiver desaparecido, o card é criado sem ela (nunca falha por causa disso). As
+  etiquetas usadas como prioridade **não** são oferecidas de novo (ver R3) e etiquetas **sem nome**
+  não são oferecidas.
 
 ## S — Segurança
 

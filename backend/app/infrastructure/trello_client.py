@@ -51,6 +51,22 @@ class TrelloClient:
                 return label["id"]
         return None
 
+    async def list_labels(self, board_id: str) -> list[dict[str, str]]:
+        """Named labels of the board, with their Trello colour.
+
+        Labels without a name are skipped: the user picks a label by its name (R7/FR-011).
+        """
+        resp = await self._request(
+            "GET",
+            f"/boards/{board_id}/labels",
+            params={**self._auth, "fields": "id,name,color"},
+        )
+        return [
+            {"name": label["name"], "color": label.get("color") or ""}
+            for label in resp.json()
+            if label.get("name")
+        ]
+
     async def create_card(
         self,
         name: str,

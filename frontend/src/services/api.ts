@@ -5,6 +5,11 @@ export interface Board {
   name: string
 }
 
+export interface Label {
+  name: string
+  color: string
+}
+
 export interface AuthStatus {
   password_set: boolean
   authenticated: boolean
@@ -76,11 +81,19 @@ export async function fetchBoards(): Promise<Board[]> {
   return (await res.json()) as Board[]
 }
 
+/** Labels that already exist on the board (priority labels are filtered on the server). */
+export async function fetchLabels(boardId: string): Promise<Label[]> {
+  const res = await fetch(`${BASE_URL}/boards/${encodeURIComponent(boardId)}/labels`)
+  if (!res.ok) throw new Error(`labels request failed: ${res.status}`)
+  return (await res.json()) as Label[]
+}
+
 export async function createCard(
   title: string,
   boardId: string,
   priority?: string,
   description?: string,
+  label?: string,
 ): Promise<{ card_id: string }> {
   const res = await fetch(`${BASE_URL}/cards`, {
     method: 'POST',
@@ -90,6 +103,7 @@ export async function createCard(
       board_id: boardId,
       priority: priority ?? null,
       description: description ?? null,
+      label: label ?? null,
     }),
   })
   if (!res.ok) throw new Error(await detailOr(res, `create card failed: ${res.status}`))
