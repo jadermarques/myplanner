@@ -32,7 +32,7 @@ test('salvar pede confirmação e só cria após confirmar (FR-006/FR-007)', asy
   let calls = 0
   await page.route('**/api/cards', async (route) => {
     calls += 1
-    await route.fulfill({ status: 201, json: { card_id: 'c1' } })
+    await route.fulfill({ status: 201, json: { card_id: 'c1', unapplied: [] } })
   })
 
   await page.goto('/')

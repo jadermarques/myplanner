@@ -21,10 +21,17 @@ class TrelloClient:
         self._backoff_base = backoff_base
         self._client = httpx.AsyncClient(base_url=TRELLO_BASE_URL, transport=transport)
 
-    async def _request(self, method: str, url: str, *, params: dict | None = None) -> httpx.Response:
+    async def _request(
+        self,
+        method: str,
+        url: str,
+        *,
+        params: dict | None = None,
+        json: dict | None = None,
+    ) -> httpx.Response:
         delay = self._backoff_base
         for attempt in range(self._max_retries):
-            resp = await self._client.request(method, url, params=params)
+            resp = await self._client.request(method, url, params=params, json=json)
             if resp.status_code == 429 and attempt < self._max_retries - 1:
                 await asyncio.sleep(delay)
                 delay *= 2
@@ -102,14 +109,62 @@ class TrelloClient:
         list_id: str,
         id_labels: list[str] | None = None,
         description: str | None = None,
+        *,
+        start: str | None = None,
+        due: str | None = None,
     ) -> str:
         params: dict = {**self._auth, "name": name, "idList": list_id}
         if id_labels:
             params["idLabels"] = ",".join(id_labels)
         if description:
             params["desc"] = description
+        if start:
+            params["start"] = start
+        if due:
+            params["due"] = due
         resp = await self._request("POST", "/cards", params=params)
         return resp.json()["id"]
+
+    async def list_custom_fields(self, board_id: str) -> list[dict]:
+        """Custom fields of the board, with their options for list fields.
+
+        The board listing returns id + type only; names and options come from the per-field and
+        per-field-options endpoints. Reading the options is best-effort: if it fails the field still
+        appears, just without choices — the capture is never blocked by it.
+        """
+        resp = await self._request("GET", f"/boards/{board_id}/customFields", params={**self._auth})
+        fields: list[dict] = []
+        for field in resp.json():
+            name = (field.get("display") or {}).get("name") or field.get("name") or ""
+            ftype = field.get("type")
+            options: list[dict] = []
+            if ftype == "list":
+                try:
+                    opts = await self._request(
+                        "GET", f"/customFields/{field['id']}/options", params={**self._auth}
+                    )
+                    options = [
+                        {
+                            "id": option["id"],
+                            "value": (option.get("value") or {}).get("text"),
+                            "color": option.get("color"),
+                        }
+                        for option in opts.json()
+                    ]
+                except httpx.HTTPStatusError:
+                    pass
+            fields.append({"id": field["id"], "name": name, "type": ftype, "options": options})
+        return fields
+
+    async def set_custom_field_item(self, card_id: str, field_id: str, payload: dict) -> None:
+        """Set a custom field value on an existing card (the API has no such param on creation)."""
+        await self._request(
+            "PUT", f"/cards/{card_id}/customField/{field_id}/item", params={**self._auth}, json=payload
+        )
+
+    async def set_due_reminder(self, card_id: str, minutes: int) -> None:
+        """Set the due reminder (minutes before due) on an existing card."""
+        await self._request("PUT", f"/cards/{card_id}", params={**self._auth, "dueReminder": minutes})
 
     async def aclose(self) -> None:
         await self._client.aclose()

@@ -24,7 +24,7 @@ async function mockCapture(page: Page): Promise<Record<string, unknown>[]> {
   const payloads: Record<string, unknown>[] = []
   await page.route('**/api/cards', async (route) => {
     payloads.push(route.request().postDataJSON())
-    await route.fulfill({ status: 201, json: { card_id: 'c1' } })
+    await route.fulfill({ status: 201, json: { card_id: 'c1', unapplied: [] } })
   })
   return payloads
 }

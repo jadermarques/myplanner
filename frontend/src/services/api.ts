@@ -15,6 +15,19 @@ export interface BoardList {
   name: string
 }
 
+export interface CustomFieldOption {
+  id: string
+  value: string
+  color: string | null
+}
+
+export interface CustomField {
+  id: string
+  name: string
+  type: string
+  options: CustomFieldOption[]
+}
+
 export interface AuthStatus {
   password_set: boolean
   authenticated: boolean
@@ -100,28 +113,45 @@ export async function fetchLists(boardId: string): Promise<BoardList[]> {
   return (await res.json()) as BoardList[]
 }
 
+/** Custom fields of the board, with the options of the list-typed ones (013). */
+export async function fetchCustomFields(boardId: string): Promise<CustomField[]> {
+  const res = await fetch(`${BASE_URL}/boards/${encodeURIComponent(boardId)}/customFields`)
+  if (!res.ok) throw new Error(`custom fields request failed: ${res.status}`)
+  return (await res.json()) as CustomField[]
+}
+
+export interface CreateCardInput {
+  title: string
+  boardId: string
+  priority?: string
+  description?: string
+  labels?: string[]
+  listId?: string
+  due?: string
+  dueReminder?: number
+  customFields?: { field_id: string; value: string }[]
+}
+
 export async function createCard(
-  title: string,
-  boardId: string,
-  priority?: string,
-  description?: string,
-  labels?: string[],
-  listId?: string,
-): Promise<{ card_id: string }> {
+  input: CreateCardInput,
+): Promise<{ card_id: string; unapplied: string[] }> {
   const res = await fetch(`${BASE_URL}/cards`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
     body: JSON.stringify({
-      title,
-      board_id: boardId,
-      priority: priority ?? null,
-      description: description ?? null,
-      labels: labels?.length ? labels : null,
-      list_id: listId ?? null,
+      title: input.title,
+      board_id: input.boardId,
+      priority: input.priority ?? null,
+      description: input.description ?? null,
+      labels: input.labels?.length ? input.labels : null,
+      list_id: input.listId ?? null,
+      due: input.due ?? null,
+      due_reminder: input.dueReminder ?? null,
+      custom_fields: input.customFields?.length ? input.customFields : null,
     }),
   })
   if (!res.ok) throw new Error(await detailOr(res, `create card failed: ${res.status}`))
-  return (await res.json()) as { card_id: string }
+  return (await res.json()) as { card_id: string; unapplied: string[] }
 }
 
 

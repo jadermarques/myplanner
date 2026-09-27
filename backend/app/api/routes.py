@@ -7,10 +7,16 @@ from app.api.dependencies import require_auth
 from app.application.create_card import create_card as create_card_use_case
 from app.application.list_labels import list_labels as list_labels_use_case
 from app.application.list_lists import list_lists as list_lists_use_case
+from app.application.list_custom_fields import list_custom_fields as list_custom_fields_use_case
 from app.config import settings
 from app.infrastructure.trello_client import TrelloClient
 
 router = APIRouter()
+
+
+class CustomFieldValue(BaseModel):
+    field_id: str
+    value: str
 
 
 class CreateCardRequest(BaseModel):
@@ -23,6 +29,10 @@ class CreateCardRequest(BaseModel):
     # together with `labels` and removed in a future version — see contracts/api.md.
     label: str | None = None
     list_id: str | None = None
+    # Dates (014) and custom fields (013) — all optional, validated server-side.
+    due: str | None = None
+    due_reminder: int | None = None
+    custom_fields: list[CustomFieldValue] | None = None
 
 
 def get_client() -> TrelloClient:
@@ -61,24 +71,48 @@ async def list_board_lists(
         raise _http_from_trello(exc, "erro ao listar listas") from exc
 
 
+@router.get("/boards/{board_id}/customFields", dependencies=[Depends(require_auth)])
+async def list_board_custom_fields(
+    board_id: str,
+    client: TrelloClient = Depends(get_client),
+) -> list[dict]:
+    """Custom fields of the board, offered to the capture screen (013/FR-006)."""
+    try:
+        return await list_custom_fields_use_case(client, board_id)
+    except httpx.HTTPStatusError as exc:
+        raise _http_from_trello(exc, "erro ao listar campos personalizados") from exc
+
+
 @router.post("/cards", status_code=201, dependencies=[Depends(require_auth)])
 async def create_card(
     req: CreateCardRequest,
     client: TrelloClient = Depends(get_client),
-) -> dict[str, str]:
+) -> dict[str, object]:
     try:
         # R7: any number of labels may be chosen (the board is the authority on which exist).
         labels = [*req.labels] if req.labels else []
         if req.label and req.label.strip():
             labels.append(req.label)
-        card_id = await create_card_use_case(
-            client, req.title, req.board_id, req.priority, req.description, labels, req.list_id
+        custom_fields = (
+            [(item.field_id, item.value) for item in req.custom_fields] if req.custom_fields else []
+        )
+        result = await create_card_use_case(
+            client,
+            req.title,
+            req.board_id,
+            req.priority,
+            req.description,
+            labels,
+            req.list_id,
+            req.due,
+            req.due_reminder,
+            custom_fields,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except httpx.HTTPStatusError as exc:
         raise _http_from_trello(exc, "erro ao criar card") from exc
-    return {"card_id": card_id}
+    return {"card_id": result.card_id, "unapplied": list(result.unapplied)}
 
 
 def _http_from_trello(exc: httpx.HTTPStatusError, fallback: str) -> HTTPException:

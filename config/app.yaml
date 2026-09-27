@@ -10,12 +10,8 @@ trello:
   rate_limit:
     requests_per_10s: 40
     backoff: exponential
-  priority_labels:
-    - "Muito alta"
-    - "Alta"
-    - "Média"
-    - "Baixa"
-    - "Muito baixa"
+  # Obs.: `priority_labels` foi removido (013): a prioridade agora vem do campo personalizado
+  # "Prioridade" do board (R3 emendada), não de uma lista fixa de etiquetas.
 
 session:
   duration_days: 90

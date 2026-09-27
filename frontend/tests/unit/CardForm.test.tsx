@@ -29,6 +29,8 @@ function renderForm(overrides: Partial<React.ComponentProps<typeof CardForm>> = 
       lists={[]}
       selectedListId=""
       onSelectList={() => {}}
+      priorityField={null}
+      customFields={[]}
       {...overrides}
     />,
   )
@@ -60,18 +62,13 @@ describe('CardForm', () => {
   })
 
   it('creates a card and shows success', async () => {
-    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1', unapplied: [] })
     renderForm()
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     saveAndConfirm()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Card criado!'))
     expect(mockedCreateCard).toHaveBeenCalledWith(
-      'Comprar leite',
-      'b1',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
+      expect.objectContaining({ title: 'Comprar leite', boardId: 'b1' }),
     )
   })
 
@@ -88,7 +85,7 @@ describe('CardForm', () => {
   })
 
   it('sends the description together with the card', async () => {
-    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1', unapplied: [] })
     renderForm()
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     openDescription()
@@ -96,18 +93,17 @@ describe('CardForm', () => {
     saveAndConfirm()
     await waitFor(() =>
       expect(mockedCreateCard).toHaveBeenCalledWith(
-        'Comprar leite',
-        'b1',
-        undefined,
-        'linha 1\nlinha 2',
-        undefined,
-        undefined,
+        expect.objectContaining({
+          title: 'Comprar leite',
+          boardId: 'b1',
+          description: 'linha 1\nlinha 2',
+        }),
       ),
     )
   })
 
   it('clears and collapses the description after success (FR-007)', async () => {
-    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1', unapplied: [] })
     renderForm()
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     openDescription()
@@ -157,7 +153,7 @@ describe('CardForm', () => {
   })
 
   it('returns the focus to the title after a successful save (FR-007)', async () => {
-    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1', unapplied: [] })
     renderForm()
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     saveAndConfirm()
@@ -168,37 +164,31 @@ describe('CardForm', () => {
   })
 
   it('sends every chosen label together with the card (FR-005)', async () => {
-    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1', unapplied: [] })
     renderForm({ selectedLabels: ['Casa', 'Trabalho'] })
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     saveAndConfirm()
 
     await waitFor(() =>
       expect(mockedCreateCard).toHaveBeenCalledWith(
-        'Comprar leite',
-        'b1',
-        undefined,
-        undefined,
-        ['Casa', 'Trabalho'],
-        undefined,
+        expect.objectContaining({
+          title: 'Comprar leite',
+          boardId: 'b1',
+          labels: ['Casa', 'Trabalho'],
+        }),
       ),
     )
   })
 
   it('sends no label when none is chosen (SC-004)', async () => {
-    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1', unapplied: [] })
     renderForm()
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     saveAndConfirm()
 
     await waitFor(() =>
       expect(mockedCreateCard).toHaveBeenCalledWith(
-        'Comprar leite',
-        'b1',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
+        expect.objectContaining({ title: 'Comprar leite', boardId: 'b1' }),
       ),
     )
   })
@@ -228,23 +218,19 @@ describe('CardForm', () => {
   it('does not show the label item when the board has no labels (FR-010)', () => {
     renderForm({ labels: [] })
     expect(screen.queryByRole('group', { name: 'Etiqueta' })).not.toBeInTheDocument()
-    expect(screen.getByRole('radiogroup', { name: 'Prioridade' })).toBeInTheDocument()
+    // sem campo personalizado de prioridade, o combobox de prioridade também não aparece
+    expect(screen.queryByLabelText('Prioridade')).not.toBeInTheDocument()
   })
 
   it('sends the chosen destination list with the card (FR-006)', async () => {
-    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1', unapplied: [] })
     renderForm({ lists, selectedListId: 'list-2' })
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     saveAndConfirm()
 
     await waitFor(() =>
       expect(mockedCreateCard).toHaveBeenCalledWith(
-        'Comprar leite',
-        'b1',
-        undefined,
-        undefined,
-        undefined,
-        'list-2',
+        expect.objectContaining({ title: 'Comprar leite', boardId: 'b1', listId: 'list-2' }),
       ),
     )
   })
@@ -300,7 +286,7 @@ describe('CardForm', () => {
 
   describe('confirmação antes de salvar', () => {
     it('opens the dialog with title and board instead of saving (FR-006)', async () => {
-      mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+      mockedCreateCard.mockResolvedValue({ card_id: 'card-1', unapplied: [] })
       renderForm()
       fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
       fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
@@ -323,7 +309,7 @@ describe('CardForm', () => {
     })
 
     it('creates exactly once on confirm (FR-007)', async () => {
-      mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+      mockedCreateCard.mockResolvedValue({ card_id: 'card-1', unapplied: [] })
       renderForm()
       fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
       fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
@@ -340,6 +326,71 @@ describe('CardForm', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       expect(mockedCreateCard).not.toHaveBeenCalled()
     })
+  })
+
+  it('renders the priority combobox from the custom field (FR-002)', () => {
+    renderForm({
+      priorityField: {
+        id: 'cf-prior',
+        name: 'Prioridade',
+        type: 'list',
+        options: [
+          { id: 'opt-alta', value: 'Alta', color: 'orange' },
+          { id: 'opt-media', value: 'Média', color: 'yellow' },
+        ],
+      },
+    })
+    const select = screen.getByLabelText('Prioridade')
+    const values = Array.from(select.querySelectorAll('option')).map(
+      (option) => (option as HTMLOptionElement).value,
+    )
+    expect(values).toEqual(['', 'Alta', 'Média'])
+  })
+
+  it('shows the reminder only when a due date is set (014/FR-005)', () => {
+    renderForm()
+    expect(screen.queryByRole('checkbox', { name: 'Definir lembrete' })).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Data de entrega'), {
+      target: { value: '2026-09-28T10:30' },
+    })
+    const checkbox = screen.getByRole('checkbox', { name: 'Definir lembrete' })
+    expect(checkbox).toBeInTheDocument()
+    expect(screen.queryByLabelText('Quando lembrar')).not.toBeInTheDocument()
+
+    fireEvent.click(checkbox)
+    expect(screen.getByLabelText('Quando lembrar')).toBeInTheDocument()
+  })
+
+  it('sends due, reminder and custom fields together (014/SC-003 + 013/SC-002)', async () => {
+    renderForm({
+      priorityField: {
+        id: 'cf-prior',
+        name: 'Prioridade',
+        type: 'list',
+        options: [{ id: 'opt-alta', value: 'Alta', color: 'orange' }],
+      },
+      customFields: [{ id: 'cf-text', name: 'Texto', type: 'text', options: [] }],
+    })
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
+    fireEvent.change(screen.getByLabelText('Prioridade'), { target: { value: 'Alta' } })
+    fireEvent.change(screen.getByLabelText('Data de entrega'), {
+      target: { value: '2026-09-28T10:30' },
+    })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Definir lembrete' }))
+    fireEvent.change(screen.getByLabelText('Quando lembrar'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Texto'), { target: { value: 'oi' } })
+    saveAndConfirm()
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Card criado!'))
+    expect(mockedCreateCard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        priority: 'Alta',
+        due: '2026-09-28T10:30',
+        dueReminder: 5,
+        customFields: [{ field_id: 'cf-text', value: 'oi' }],
+      }),
+    )
   })
 })
 

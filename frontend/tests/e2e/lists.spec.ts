@@ -30,7 +30,7 @@ test('the chosen list is used when the card is created (FR-006)', async ({ page 
   let payload: Record<string, unknown> | null = null
   await page.route('**/api/cards', async (route) => {
     payload = route.request().postDataJSON()
-    await route.fulfill({ status: 201, json: { card_id: 'c1' } })
+    await route.fulfill({ status: 201, json: { card_id: 'c1', unapplied: [] } })
   })
 
   await page.goto('/')
@@ -48,7 +48,7 @@ test('saving without touching the field keeps the current payload (SC-002)', asy
   let payload: Record<string, unknown> | null = null
   await page.route('**/api/cards', async (route) => {
     payload = route.request().postDataJSON()
-    await route.fulfill({ status: 201, json: { card_id: 'c1' } })
+    await route.fulfill({ status: 201, json: { card_id: 'c1', unapplied: [] } })
   })
 
   await page.goto('/')
@@ -68,7 +68,7 @@ test('a failing lists request hides the field and never blocks the capture (SC-0
   await page.route('**/api/boards/*/lists', (route) =>
     route.fulfill({ status: 502, json: { detail: 'erro ao listar listas' } }),
   )
-  await page.route('**/api/cards', (route) => route.fulfill({ status: 201, json: { card_id: 'c1' } }))
+  await page.route('**/api/cards', (route) => route.fulfill({ status: 201, json: { card_id: 'c1', unapplied: [] } }))
 
   await page.goto('/')
   await expect(page.getByLabel('Lista de destino')).toHaveCount(0)

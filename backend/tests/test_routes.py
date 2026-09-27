@@ -8,12 +8,23 @@ from app.main import app
 
 
 class FakeTrelloClient:
-    LABELS = {"Alta": "label-1", "Casa": "label-2", "Trabalho": "label-3"}
+    LABELS = {"Casa": "label-2", "Trabalho": "label-3"}
+    PRIORITY_FIELD = {
+        "id": "cf-prior",
+        "name": "Prioridade",
+        "type": "list",
+        "options": [{"id": "opt-alta", "value": "Alta", "color": "orange"}],
+    }
 
     def __init__(self) -> None:
         self.last_description: str | None = None
         self.last_label_ids: list[str] | None = None
         self.last_list_id: str | None = None
+        self.last_start: str | None = None
+        self.last_due: str | None = None
+        self.last_due_reminder: int | None = None
+        self.set_field_calls: list[tuple] = []
+        self.custom_fields: list[dict] = [self.PRIORITY_FIELD]
         self.listed_labels_for: list[str] = []
         self.listed_lists_for: list[str] = []
         self.label_reads = 0
@@ -58,11 +69,24 @@ class FakeTrelloClient:
             {"id": "list-2", "name": "Em andamento"},
         ]
 
-    async def create_card(self, name: str, list_id: str, id_labels=None, description=None) -> str:
+    async def list_custom_fields(self, board_id: str) -> list[dict]:
+        return self.custom_fields
+
+    async def create_card(
+        self, name: str, list_id: str, id_labels=None, description=None, *, start=None, due=None
+    ) -> str:
         self.last_description = description
         self.last_label_ids = id_labels
         self.last_list_id = list_id
+        self.last_start = start
+        self.last_due = due
         return "card-1"
+
+    async def set_custom_field_item(self, card_id: str, field_id: str, payload: dict) -> None:
+        self.set_field_calls.append((card_id, field_id, payload))
+
+    async def set_due_reminder(self, card_id: str, minutes: int) -> None:
+        self.last_due_reminder = minutes
 
 
 def _client() -> TestClient:
@@ -89,7 +113,7 @@ def test_create_card_endpoint() -> None:
     client = _client()
     resp = client.post("/cards", json={"title": "Comprar leite", "board_id": "b1", "priority": "Alta"})
     assert resp.status_code == 201
-    assert resp.json() == {"card_id": "card-1"}
+    assert resp.json() == {"card_id": "card-1", "unapplied": []}
 
 
 def test_create_card_rejects_empty_title() -> None:
@@ -98,10 +122,12 @@ def test_create_card_rejects_empty_title() -> None:
     assert resp.status_code == 400
 
 
-def test_create_card_rejects_invalid_priority() -> None:
-    client = _client()
+def test_create_card_ignores_a_priority_that_is_not_an_option() -> None:
+    """R3 (amended by 013): unknown priority is not applied — never a 400."""
+    client, fake = _client_with_fake()
     resp = client.post("/cards", json={"title": "x", "board_id": "b1", "priority": "Urgente"})
-    assert resp.status_code == 400
+    assert resp.status_code == 201
+    assert fake.set_field_calls == []
 
 
 def test_create_card_with_description() -> None:
@@ -160,12 +186,12 @@ def test_there_is_no_card_editing_route() -> None:
     assert client.put("/cards/c1", json={"description": "x"}).status_code in (404, 405)
 
 
-def test_list_board_labels_offers_the_board_labels_without_the_priorities() -> None:
-    """FR-001/FR-005: the endpoint filters the priority labels out (R3)."""
+def test_list_board_labels_offers_every_board_label() -> None:
+    """013/FR-011: priority is no longer a label, so no name is hidden."""
     client, fake = _client_with_fake()
     resp = client.get("/boards/b1/labels")
     assert resp.status_code == 200
-    assert resp.json() == [{"name": "Casa", "color": "green"}]
+    assert resp.json() == [{"name": "Alta", "color": "red"}, {"name": "Casa", "color": "green"}]
     assert fake.listed_labels_for == ["b1"]
 
 

@@ -7,6 +7,7 @@ import OfflineNotice from './components/OfflineNotice'
 import SetPasswordScreen from './components/SetPasswordScreen'
 import { useAuth } from './hooks/useAuth'
 import { useBoards } from './hooks/useBoards'
+import { useCustomFields } from './hooks/useCustomFields'
 import { useKeyboardInset } from './hooks/useKeyboardInset'
 import { useLabels } from './hooks/useLabels'
 import { useLists } from './hooks/useLists'
@@ -28,6 +29,9 @@ export default function App() {
     state === 'authenticated' ? selectedBoardId : '',
   )
   const { lists, selectedListId, selectList } = useLists(
+    state === 'authenticated' ? selectedBoardId : '',
+  )
+  const { priorityField, otherFields: customFields } = useCustomFields(
     state === 'authenticated' ? selectedBoardId : '',
   )
 
@@ -141,6 +145,8 @@ export default function App() {
                 lists={lists}
                 selectedListId={selectedListId}
                 onSelectList={selectList}
+                priorityField={priorityField}
+                customFields={customFields}
               />
             )}
 

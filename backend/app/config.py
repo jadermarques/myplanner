@@ -20,7 +20,8 @@ class RateLimit(BaseSettings):
 class TrelloSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
-    priority_labels: list[str] = ["Muito alta", "Alta", "Média", "Baixa", "Muito baixa"]
+    # Priority is no longer a fixed list of labels: since 013 it is a value of the board's custom
+    # field named "Prioridade" (R3 amended). Kept only the rate budget below.
     rate_limit: RateLimit = RateLimit()
 
 

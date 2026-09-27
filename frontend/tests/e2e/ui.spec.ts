@@ -8,6 +8,22 @@ async function mockApp(page: import('@playwright/test').Page) {
     route.fulfill({ json: [{ id: 'b1', name: 'Pessoal' }] }),
   )
   await page.route('**/api/version', (route) => route.fulfill({ json: { version: '0.8.0' } }))
+  await page.route('**/api/boards/*/customFields', (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: 'cf-prior',
+          name: 'Prioridade',
+          type: 'list',
+          options: [
+            { id: 'opt-alta', value: 'Alta', color: 'orange' },
+            { id: 'opt-media', value: 'Média', color: 'yellow' },
+            { id: 'opt-baixa', value: 'Baixa', color: 'sky' },
+          ],
+        },
+      ],
+    }),
+  )
 }
 
 test('the title field is ready for typing as soon as the capture screen opens (FR-001)', async ({
@@ -18,13 +34,17 @@ test('the title field is ready for typing as soon as the capture screen opens (F
   await expect(page.getByLabel('Título')).toBeFocused()
 })
 
-test('a priority is chosen with a single tap, all options visible (FR-004)', async ({ page }) => {
+test('a priority is chosen from a single-choice combobox (FR-001)', async ({ page }) => {
   await mockApp(page)
   await page.goto('/')
 
-  await expect(page.getByRole('radio')).toHaveCount(6)
-  await page.getByRole('radio', { name: 'Alta', exact: true }).click()
-  await expect(page.getByRole('radio', { name: 'Alta', exact: true })).toBeChecked()
+  const select = page.getByLabel('Prioridade')
+  await expect(select).toBeVisible()
+  const options = await select.locator('option').allTextContents()
+  expect(options).toEqual(['', 'Alta', 'Média', 'Baixa']) // sem "Sem prioridade"
+
+  await select.selectOption('Alta')
+  await expect(select).toHaveValue('Alta')
 })
 
 test('the primary controls honour the 48px touch target (FR-003)', async ({ page }) => {
@@ -34,7 +54,7 @@ test('the primary controls honour the 48px touch target (FR-003)', async ({ page
   const targets = [
     { name: 'Título', locator: page.getByLabel('Título') },
     { name: 'Board', locator: page.getByLabel('Board') },
-    { name: 'prioridade Alta', locator: page.getByRole('radio', { name: 'Alta', exact: true }) },
+    { name: 'Prioridade', locator: page.getByLabel('Prioridade') },
     { name: 'adicionar descrição', locator: page.getByRole('button', { name: 'adicionar descrição' }) },
     { name: 'Salvar', locator: page.getByRole('button', { name: 'Salvar' }) },
     { name: 'menu', locator: page.getByRole('button', { name: 'Mais opções' }) },

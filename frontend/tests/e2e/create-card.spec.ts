@@ -19,7 +19,7 @@ test('shows validation error for empty title', async ({ page }) => {
 
 test('creates a card and shows success', async ({ page }) => {
   await mockAuthenticated(page)
-  await page.route('**/api/cards', (route) => route.fulfill({ json: { card_id: 'card-1' } }))
+  await page.route('**/api/cards', (route) => route.fulfill({ json: { card_id: 'card-1', unapplied: [] } }))
   await page.goto('/')
   await page.getByLabel('Título').fill('Comprar leite')
   await page.getByRole('button', { name: 'Salvar' }).click()

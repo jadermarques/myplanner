@@ -1,14 +1,11 @@
-"""Use case: offer the board labels that are not already used as priority (R3/FR-005)."""
-from app.config import settings
+"""Use case: offer the board labels (priority is no longer a label — R3 amended by 013)."""
 from app.infrastructure.trello_client import TrelloClient
 
 
 async def list_labels(client: TrelloClient, board_id: str) -> list[dict[str, str]]:
-    """Labels of the board, in the Trello order, without the ones that mean priority.
+    """Labels of the board, in the Trello order.
 
-    The priority labels already have their own control, so offering them again would allow the
-    same label to be chosen twice (R3) and would only add noise to the capture screen.
+    Before 013, the labels whose name matched a priority were hidden because priority used to be a
+    label. With priority now being a custom field, every board label is offered as a tag.
     """
-    labels = await client.list_labels(board_id)
-    taken = set(settings.trello.priority_labels)
-    return [label for label in labels if label["name"] not in taken]
+    return await client.list_labels(board_id)

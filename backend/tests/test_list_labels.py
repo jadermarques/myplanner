@@ -1,4 +1,4 @@
-"""Tests for the list_labels use case (R3: the priority labels are not offered twice)."""
+"""Tests for the list_labels use case (priority is no longer a label — R3 amended by 013)."""
 import asyncio
 
 from app.application.list_labels import list_labels
@@ -14,7 +14,8 @@ class FakeClient:
         return self._labels
 
 
-def test_list_labels_excludes_the_priority_labels() -> None:
+def test_list_labels_returns_every_board_label() -> None:
+    """013/FR-011: names that used to mean priority are now ordinary labels."""
     client = FakeClient(
         [
             {"name": "Alta", "color": "red"},
@@ -22,7 +23,8 @@ def test_list_labels_excludes_the_priority_labels() -> None:
             {"name": "Muito baixa", "color": "sky"},
         ]
     )
-    assert asyncio.run(list_labels(client, "b1")) == [{"name": "Casa", "color": "green"}]
+    names = [label["name"] for label in asyncio.run(list_labels(client, "b1"))]
+    assert names == ["Alta", "Casa", "Muito baixa"]
 
 
 def test_list_labels_preserves_the_board_order() -> None:
@@ -33,9 +35,9 @@ def test_list_labels_preserves_the_board_order() -> None:
     assert names == ["Zebra", "Casa"]
 
 
-def test_list_labels_is_empty_when_only_priorities_exist() -> None:
+def test_list_labels_is_empty_when_the_board_has_no_labels() -> None:
     """FR-008: no label to offer means the item will not be rendered."""
-    client = FakeClient([{"name": "Alta", "color": "red"}])
+    client = FakeClient([])
     assert asyncio.run(list_labels(client, "b1")) == []
 
 

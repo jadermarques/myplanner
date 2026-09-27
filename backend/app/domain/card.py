@@ -13,6 +13,9 @@ class Card:
     description: str | None = None
     labels: tuple[str, ...] = ()
     list_id: str | None = None
+    due: str | None = None
+    due_reminder: int | None = None
+    custom_fields: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
         if not self.title or not self.title.strip():
@@ -22,6 +25,8 @@ class Card:
         object.__setattr__(self, "description", _normalize_description(self.description))
         object.__setattr__(self, "labels", _normalize_labels(self.labels))
         object.__setattr__(self, "list_id", _normalize_list_id(self.list_id))
+        object.__setattr__(self, "due", _normalize_optional_text(self.due))
+        object.__setattr__(self, "custom_fields", _normalize_custom_fields(self.custom_fields))
 
 
 def _normalize_labels(labels: Iterable[str] | None) -> tuple[str, ...]:
@@ -51,6 +56,31 @@ def _normalize_list_id(list_id: str | None) -> str | None:
         return None
     text = list_id.strip()
     return text or None
+
+
+def _normalize_optional_text(value: str | None) -> str | None:
+    """Trim; blank means "not set" (used by due)."""
+    if value is None:
+        return None
+    text = value.strip()
+    return text or None
+
+
+def _normalize_custom_fields(fields: Iterable[tuple[str, str]] | None) -> tuple[tuple[str, str], ...]:
+    """Keep only pairs with a field id, values as strings (the use case maps them by type).
+
+    A field the board no longer has is simply not applied (R9, same philosophy as R7): the domain
+    never validates against the board, which is the authority.
+    """
+    if not fields:
+        return ()
+    cleaned: list[tuple[str, str]] = []
+    for field_id, value in fields:
+        fid = (field_id or "").strip()
+        if not fid:
+            continue
+        cleaned.append((fid, str(value)))
+    return tuple(cleaned)
 
 
 def _normalize_description(description: str | None) -> str | None:

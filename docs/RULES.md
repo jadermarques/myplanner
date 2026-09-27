@@ -8,8 +8,10 @@ código (ex.: `R3`). Ver `docs/TESTS_STRATEGY.md`.
 - **R1**: Um card é criado exclusivamente via API REST oficial do Trello; o frontend
   nunca chama o Trello diretamente.
 - **R2**: O token do Trello existe somente no servidor (nunca no cliente).
-- **R3**: As prioridades de um card limitam-se aos labels configurados em
-  `trello.priority_labels` (Muito alta, Alta, Média, Baixa, Muito baixa).
+- **R3** (emendada pela 013): A prioridade de um card é **opcional** e vem do campo personalizado
+  **"Prioridade"** (tipo lista) do board, com os **valores definidos nele**. Só aparece e é aplicada se o
+  board tiver esse campo; um valor que não existe mais é ignorado (nunca falha). A prioridade **não é
+  mais uma etiqueta** — o app não aplica nem esconde etiquetas por causa dela.
 - **R4**: ~~Nesta versão não há campo descrição no card (fora de escopo).~~ **REVOGADA** pela
   feature `006-descricao-do-card` (2026-09-26) — substituída pela R6.
 - **R5**: O card é criado em um board selecionado; o board padrão é `last_used`
@@ -26,6 +28,9 @@ código (ex.: `R3`). Ver `docs/TESTS_STRATEGY.md`.
   board. Uma lista informada só é usada se **pertencer ao board**; caso contrário (lista de outro
   board, apagada ou vazia) o card vai para a primeira lista — **nunca** para fora do board e
   **nunca** com erro.
+- **R9**: Os **campos personalizados** do board são aplicados **depois** de criar o card (a API do Trello
+  não os aceita na criação), em modo **best-effort**: se a gravação de um campo falhar, o card **já
+  existe** e o app avisa qual campo não foi aplicado — **nunca** bloqueia a captura.
 
 ## S — Segurança
 

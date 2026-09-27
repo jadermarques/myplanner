@@ -23,7 +23,7 @@ test('opening, typing and saving sends the description', async ({ page }) => {
   let body: string | null = null
   await page.route('**/api/cards', (route) => {
     body = route.request().postData()
-    return route.fulfill({ status: 201, json: { card_id: 'c1' } })
+    return route.fulfill({ status: 201, json: { card_id: 'c1', unapplied: [] } })
   })
 
   await page.goto('/')

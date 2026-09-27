@@ -1,37 +1,43 @@
-const PRIORITY_LABELS = ['Muito alta', 'Alta', 'Média', 'Baixa', 'Muito baixa']
+import { CustomFieldOption } from '../services/api'
 
 interface PrioritySelectProps {
+  options: CustomFieldOption[]
   value: string
   onChange: (priority: string) => void
+  onClear: () => void
 }
 
 /**
- * Escolha direta: todas as opções visíveis e **1 toque** (a lista suspensa
- * anterior custava 2). Rádios nativos preservam a navegação por teclado.
+ * Prioridade como combobox de escolha única (013/FR-001), alimentada pelas opções do campo
+ * personalizado "Prioridade" do board. O estado vazio é "sem prioridade" e NÃO aparece na lista;
+ * "limpar prioridade" devolve ao vazio depois de escolher.
  */
-export default function PrioritySelect({ value, onChange }: PrioritySelectProps) {
-  const options = [
-    { label: 'Sem prioridade', value: '' },
-    ...PRIORITY_LABELS.map((label) => ({ label, value: label })),
-  ]
-
+export default function PrioritySelect({ options, value, onChange, onClear }: PrioritySelectProps) {
   return (
-    <div className="chips" role="radiogroup" aria-label="Prioridade">
-      {options.map((option) => (
-        <label
-          key={option.label}
-          className={value === option.value ? 'chip chip--on' : 'chip'}
-        >
-          <input
-            type="radio"
-            name="priority"
-            value={option.value}
-            checked={value === option.value}
-            onChange={() => onChange(option.value)}
-          />
-          {option.label}
-        </label>
-      ))}
+    <div className="field">
+      <label className="field__label" htmlFor="priority">
+        Prioridade
+      </label>
+      <select
+        id="priority"
+        className="input input--select"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="" disabled hidden />
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.value}
+          </option>
+        ))}
+      </select>
+      {value && (
+        <div className="desc-actions">
+          <button type="button" className="desc-action" onClick={onClear}>
+            limpar prioridade
+          </button>
+        </div>
+      )}
     </div>
   )
 }
