@@ -57,8 +57,12 @@ async def create_card(
         await client.find_label_ids_by_names(card.board_id, list(card.labels)) if card.labels else []
     )
 
-    # R9: custom fields are applied after creation, best-effort. One read of the board's fields.
-    board_fields = await client.list_custom_fields(card.board_id)
+    # R9: custom fields are applied after creation, best-effort. One read of the board's fields. The
+    # read itself must never block the capture: if it fails, the card is still created without them.
+    try:
+        board_fields = await client.list_custom_fields(card.board_id)
+    except Exception:  # noqa: BLE001 — R9: custom fields never block the capture
+        board_fields = []
     fields_by_id = {field["id"]: field for field in board_fields}
     priority_field = next(
         (field for field in board_fields if field["name"] == PRIORITY_FIELD_NAME and field["type"] == "list"),

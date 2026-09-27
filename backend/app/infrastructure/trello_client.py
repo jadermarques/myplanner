@@ -126,34 +126,32 @@ class TrelloClient:
         return resp.json()["id"]
 
     async def list_custom_fields(self, board_id: str) -> list[dict]:
-        """Custom fields of the board, with their options for list fields.
+        """Custom fields of the board, with the options of the list-typed ones (013).
 
-        The board listing returns id + type only; names and options come from the per-field and
-        per-field-options endpoints. Reading the options is best-effort: if it fails the field still
-        appears, just without choices — the capture is never blocked by it.
+        The board listing already returns the name, type and (for list fields) the options inline,
+        so a single read is enough. Note the separate GET /customFields/{id}/options endpoint returns
+        the option id as `_id` (underscore), so we rely on the board listing's inline `options` which
+        use `id`. Every access is defensive: a malformed field/option is skipped instead of raising —
+        reading custom fields never blocks the capture (R9).
         """
         resp = await self._request("GET", f"/boards/{board_id}/customFields", params={**self._auth})
         fields: list[dict] = []
         for field in resp.json():
-            name = (field.get("display") or {}).get("name") or field.get("name") or ""
-            ftype = field.get("type")
-            options: list[dict] = []
-            if ftype == "list":
-                try:
-                    opts = await self._request(
-                        "GET", f"/customFields/{field['id']}/options", params={**self._auth}
-                    )
-                    options = [
-                        {
-                            "id": option["id"],
-                            "value": (option.get("value") or {}).get("text"),
-                            "color": option.get("color"),
-                        }
-                        for option in opts.json()
-                    ]
-                except httpx.HTTPStatusError:
-                    pass
-            fields.append({"id": field["id"], "name": name, "type": ftype, "options": options})
+            field_id = field.get("id")
+            if not field_id:
+                continue
+            name = field.get("name") or (field.get("display") or {}).get("name") or ""
+            ftype = field.get("type") or ""
+            options = [
+                {
+                    "id": option.get("id"),
+                    "value": (option.get("value") or {}).get("text"),
+                    "color": option.get("color"),
+                }
+                for option in (field.get("options") or [])
+                if option.get("id")
+            ]
+            fields.append({"id": field_id, "name": name, "type": ftype, "options": options})
         return fields
 
     async def set_custom_field_item(self, card_id: str, field_id: str, payload: dict) -> None:

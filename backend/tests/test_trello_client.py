@@ -212,3 +212,100 @@ def test_list_lists_returns_open_lists_with_id_and_name() -> None:
         {"id": "l1", "name": "A fazer"},
         {"id": "l2", "name": "Em andamento"},
     ]
+
+
+def test_list_custom_fields_parses_fields_and_options() -> None:
+    """013: fields and list options come from the single board listing (name + options inline)."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/1/boards/b1/customFields"
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "id": "cf-pri",
+                    "name": "Prioridade",
+                    "type": "list",
+                    "options": [
+                        {"id": "opt-alta", "value": {"text": "Alta"}, "color": "red"},
+                        {"id": "opt-baixa", "value": {"text": "Baixa"}, "color": "blue"},
+                    ],
+                },
+                {"id": "cf-num", "name": "Valor", "type": "number"},
+            ],
+        )
+
+    client = _make_client(handler)
+    try:
+        fields = _run(client.list_custom_fields("b1"))
+    finally:
+        _run(client.aclose())
+    assert fields == [
+        {
+            "id": "cf-pri",
+            "name": "Prioridade",
+            "type": "list",
+            "options": [
+                {"id": "opt-alta", "value": "Alta", "color": "red"},
+                {"id": "opt-baixa", "value": "Baixa", "color": "blue"},
+            ],
+        },
+        {"id": "cf-num", "name": "Valor", "type": "number", "options": []},
+    ]
+
+
+def test_list_custom_fields_skips_malformed_fields_and_options() -> None:
+    """Regression (013 bug): a field/option without id must be skipped, never raise (R9).
+
+    Mirrors the real API quirk: the separate /options endpoint exposes the option id as `_id`,
+    which must not crash the reader (the board listing uses `id`).
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=[
+                {"name": "Sem id", "type": "list"},  # no id -> skipped
+                {
+                    "id": "cf-pri",
+                    "name": "Prioridade",
+                    "type": "list",
+                    "options": [
+                        {"value": {"text": "Alta"}, "color": "red", "_id": "opt-alta"},  # no id -> skipped
+                        {"id": "opt-baixa", "value": {"text": "Baixa"}, "color": "blue"},
+                    ],
+                },
+            ],
+        )
+
+    client = _make_client(handler)
+    try:
+        fields = _run(client.list_custom_fields("b1"))
+    finally:
+        _run(client.aclose())
+    assert fields == [
+        {
+            "id": "cf-pri",
+            "name": "Prioridade",
+            "type": "list",
+            "options": [{"id": "opt-baixa", "value": "Baixa", "color": "blue"}],
+        },
+    ]
+
+
+def test_list_custom_fields_falls_back_to_display_name() -> None:
+    """013: when the top-level name is absent, display.name is used (Trello returns either shape)."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=[{"id": "cf-num", "type": "number", "display": {"name": "Valor"}}],
+        )
+
+    client = _make_client(handler)
+    try:
+        fields = _run(client.list_custom_fields("b1"))
+    finally:
+        _run(client.aclose())
+    assert fields == [{"id": "cf-num", "name": "Valor", "type": "number", "options": []}]
+

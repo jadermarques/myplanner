@@ -73,7 +73,9 @@ async def _main() -> None:
                 print(f"  GET /boards/{{id}}/customFields -> OK ({len(fields)} campo(s))")
                 for field in fields:
                     fid = field.get("id")
-                    # A listagem por board traz só id+tipo; nome e valores vêm do campo completo.
+                    # A listagem por board já traz nome, tipo e (para listas) as opções inline com `id`.
+                    # O endpoint separado /customFields/{id}/options devolve o id como `_id` (underscore) —
+                    # por isso o app lê as opções do próprio board, não daquele endpoint.
                     try:
                         full = await _get(client, f"/customFields/{fid}")
                     except httpx.HTTPStatusError as exc:
