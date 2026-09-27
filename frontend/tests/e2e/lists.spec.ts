@@ -37,6 +37,7 @@ test('the chosen list is used when the card is created (FR-006)', async ({ page 
   await page.getByLabel('Lista de destino').selectOption('list-2')
   await page.getByLabel('Título').fill('Revisão do carro')
   await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Confirmar' }).click()
   await expect(page.getByRole('status')).toHaveText('Card criado!')
 
   expect(payload).toMatchObject({ title: 'Revisão do carro', list_id: 'list-2' })
@@ -53,6 +54,7 @@ test('saving without touching the field keeps the current payload (SC-002)', asy
   await page.goto('/')
   await page.getByLabel('Título').fill('Sem escolher lista')
   await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Confirmar' }).click()
   await expect(page.getByRole('status')).toHaveText('Card criado!')
 
   // o padrão é a primeira lista do board, decidida pelo servidor
@@ -73,6 +75,7 @@ test('a failing lists request hides the field and never blocks the capture (SC-0
 
   await page.getByLabel('Título').fill('Listas fora do ar')
   await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Confirmar' }).click()
   await expect(page.getByRole('status')).toHaveText('Card criado!')
 })
 

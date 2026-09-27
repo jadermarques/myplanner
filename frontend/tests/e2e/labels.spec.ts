@@ -45,6 +45,7 @@ test('more than one label can be chosen, and all of them travel with the card (F
 
   await page.getByLabel('Título').fill('Revisão do carro')
   await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Confirmar' }).click()
   await expect(page.getByRole('status')).toHaveText('Card criado!')
 
   expect(payloads[0]).toMatchObject({ labels: ['Casa', 'Financeiro'] })
@@ -64,6 +65,7 @@ test('turning a label off keeps the others chosen (FR-001)', async ({ page }) =>
 
   await page.getByLabel('Título').fill('Uma etiqueta só')
   await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Confirmar' }).click()
   await expect(page.getByRole('status')).toHaveText('Card criado!')
 
   expect(payloads[0]).toMatchObject({ labels: ['Financeiro'] })
@@ -83,6 +85,7 @@ test('"limpar" turns every label off at once (FR-003)', async ({ page }) => {
 
   await page.getByLabel('Título').fill('Sem etiquetas')
   await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Confirmar' }).click()
   await expect(page.getByRole('status')).toHaveText('Card criado!')
 
   expect(payloads[0]).toMatchObject({ labels: null })
@@ -99,6 +102,7 @@ test('the label item disappears when the board has no labels to offer (FR-010)',
 
   await page.getByLabel('Título').fill('Sem etiquetas no board')
   await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Confirmar' }).click()
   await expect(page.getByRole('status')).toHaveText('Card criado!')
 })
 
@@ -114,6 +118,7 @@ test('a failing labels request never blocks the capture (SC-003)', async ({ page
 
   await page.getByLabel('Título').fill('Sem etiquetas carregadas')
   await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Confirmar' }).click()
   await expect(page.getByRole('status')).toHaveText('Card criado!')
 })
 

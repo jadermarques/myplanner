@@ -23,6 +23,7 @@ test('creates a card and shows success', async ({ page }) => {
   await page.goto('/')
   await page.getByLabel('Título').fill('Comprar leite')
   await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Confirmar' }).click()
   await expect(page.getByRole('status')).toHaveText('Card criado!')
 })
 

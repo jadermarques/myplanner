@@ -31,6 +31,7 @@ test('opening, typing and saving sends the description', async ({ page }) => {
   await page.getByRole('button', { name: 'adicionar descrição' }).click()
   await page.getByLabel('Descrição').fill('linha 1\nlinha 2')
   await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Confirmar' }).click()
 
   await expect(page.getByRole('status')).toHaveText('Card criado!')
   expect(body).toContain('"description":"linha 1\\nlinha 2"')

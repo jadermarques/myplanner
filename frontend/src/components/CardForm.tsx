@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import LabelSelect from './LabelSelect'
 import ListSelect from './ListSelect'
 import PrioritySelect from './PrioritySelect'
@@ -9,6 +9,7 @@ const MAX_DESCRIPTION_CHARS = 2000
 
 interface CardFormProps {
   selectedBoardId: string
+  boardName: string
   boardsLoading: boolean
   boardsError: string | null
   labels: Label[]
@@ -29,6 +30,7 @@ interface CardFormProps {
  */
 export default function CardForm({
   selectedBoardId,
+  boardName,
   boardsLoading,
   boardsError,
   labels,
@@ -47,12 +49,13 @@ export default function CardForm({
   const [saveError, setSaveError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const titleRef = useRef<HTMLInputElement | null>(null)
 
   const descriptionTooLong = description.length > MAX_DESCRIPTION_CHARS
   const canSave = !saving && Boolean(selectedBoardId) && !descriptionTooLong
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) {
       setTitleError('O título é obrigatório.')
@@ -62,6 +65,11 @@ export default function CardForm({
     }
     setTitleError(null)
     if (descriptionTooLong) return
+    // FR-006: a confirmação é sempre; o salvamento só acontece depois do diálogo.
+    setConfirmOpen(true)
+  }
+
+  const doSave = async () => {
     setSaveError(null)
     setSaving(true)
     try {
@@ -77,7 +85,6 @@ export default function CardForm({
       setTitle('')
       setDescription('')
       setDescriptionOpen(false)
-      titleRef.current?.focus()
     } catch (err) {
       setSuccess(false)
       setSaveError(err instanceof Error ? err.message : 'Erro ao salvar o card. Tente novamente.')
@@ -85,6 +92,19 @@ export default function CardForm({
       setSaving(false)
     }
   }
+
+  const handleConfirm = () => {
+    setConfirmOpen(false)
+    void doSave()
+  }
+
+  // FR-010: o foco volta ao título só depois de o botão ser reabilitado — um input desabilitado não
+  // recebe foco, e o modal que acabou de fechar teria roubado o foco (autoFocus no Cancelar).
+  useEffect(() => {
+    if (success && !saving) {
+      titleRef.current?.focus()
+    }
+  }, [success, saving])
 
   return (
     <form className="capture" onSubmit={handleSubmit} aria-label="Inserir card">
@@ -161,14 +181,52 @@ export default function CardForm({
               A descrição passa de {MAX_DESCRIPTION_CHARS} caracteres. Reduza para salvar.
             </p>
           )}
+          <div className="desc-actions">
+            <button
+              type="button"
+              className="desc-action"
+              onClick={() => setDescriptionOpen(false)}
+              disabled={saving}
+            >
+              voltar
+            </button>
+            <button
+              type="button"
+              className="desc-action desc-action--danger"
+              onClick={() => {
+                setDescription('')
+                setDescriptionOpen(false)
+              }}
+              disabled={saving}
+            >
+              limpar descrição
+            </button>
+          </div>
+        </div>
+      ) : description.trim() ? (
+        <div className="field">
+          <span className="field__label" aria-hidden="true">
+            Descrição
+          </span>
+          <button
+            type="button"
+            className="desc-summary"
+            onClick={() => setDescriptionOpen(true)}
+            disabled={saving}
+          >
+            <span className="desc-summary__text">{description}</span>
+          </button>
         </div>
       ) : (
         <button
           type="button"
-          className="ghost-link"
+          className="desc-open"
           onClick={() => setDescriptionOpen(true)}
           disabled={saving}
         >
+          <span className="desc-open__plus" aria-hidden="true">
+            +
+          </span>
           adicionar descrição
         </button>
       )}
@@ -197,6 +255,26 @@ export default function CardForm({
           {saving ? 'Salvando…' : 'Salvar'}
         </button>
       </div>
+
+      {confirmOpen && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+          <div className="modal">
+            <h2 id="confirm-title" className="modal__title">
+              Confirmar inserção?
+            </h2>
+            <p className="modal__card">“{title.trim()}”</p>
+            <p className="modal__board">no board {boardName}</p>
+            <div className="modal__actions">
+              <button type="button" className="button" onClick={() => setConfirmOpen(false)} autoFocus>
+                Cancelar
+              </button>
+              <button type="button" className="button button--primary" onClick={handleConfirm}>
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   )
 }

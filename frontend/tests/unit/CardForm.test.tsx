@@ -19,6 +19,7 @@ function renderForm(overrides: Partial<React.ComponentProps<typeof CardForm>> = 
   return render(
     <CardForm
       selectedBoardId="b1"
+      boardName="Pessoal"
       boardsLoading={false}
       boardsError={null}
       labels={labels}
@@ -35,6 +36,11 @@ function renderForm(overrides: Partial<React.ComponentProps<typeof CardForm>> = 
 
 const openDescription = () =>
   fireEvent.click(screen.getByRole('button', { name: 'adicionar descrição' }))
+
+const saveAndConfirm = () => {
+  fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+}
 
 describe('CardForm', () => {
   beforeEach(() => {
@@ -57,7 +63,7 @@ describe('CardForm', () => {
     mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
     renderForm()
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    saveAndConfirm()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Card criado!'))
     expect(mockedCreateCard).toHaveBeenCalledWith(
       'Comprar leite',
@@ -87,7 +93,7 @@ describe('CardForm', () => {
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     openDescription()
     fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'linha 1\nlinha 2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    saveAndConfirm()
     await waitFor(() =>
       expect(mockedCreateCard).toHaveBeenCalledWith(
         'Comprar leite',
@@ -106,7 +112,7 @@ describe('CardForm', () => {
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     openDescription()
     fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'texto' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    saveAndConfirm()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Card criado!'))
     expect(screen.queryByLabelText('Descrição')).not.toBeInTheDocument()
   })
@@ -117,7 +123,7 @@ describe('CardForm', () => {
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     openDescription()
     fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'rascunho' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    saveAndConfirm()
     expect(await screen.findByRole('alert')).toHaveTextContent('erro ao criar card')
     expect(screen.getByLabelText('Descrição')).toHaveValue('rascunho')
   })
@@ -154,7 +160,7 @@ describe('CardForm', () => {
     mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
     renderForm()
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    saveAndConfirm()
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Card criado!'))
     expect(screen.getByLabelText('Título')).toHaveValue('')
@@ -165,7 +171,7 @@ describe('CardForm', () => {
     mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
     renderForm({ selectedLabels: ['Casa', 'Trabalho'] })
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    saveAndConfirm()
 
     await waitFor(() =>
       expect(mockedCreateCard).toHaveBeenCalledWith(
@@ -183,7 +189,7 @@ describe('CardForm', () => {
     mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
     renderForm()
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    saveAndConfirm()
 
     await waitFor(() =>
       expect(mockedCreateCard).toHaveBeenCalledWith(
@@ -229,7 +235,7 @@ describe('CardForm', () => {
     mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
     renderForm({ lists, selectedListId: 'list-2' })
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    saveAndConfirm()
 
     await waitFor(() =>
       expect(mockedCreateCard).toHaveBeenCalledWith(
@@ -255,6 +261,85 @@ describe('CardForm', () => {
   it('does not show the destination list field when there are no lists (FR-005)', () => {
     renderForm({ lists: [] })
     expect(screen.queryByLabelText('Lista de destino')).not.toBeInTheDocument()
+  })
+
+  describe('descrição: voltar, limpar e resumo', () => {
+    it('shows a 2-line summary after voltar, and reopens intact (FR-002/FR-004)', () => {
+      renderForm()
+      openDescription()
+      fireEvent.change(screen.getByLabelText('Descrição'), {
+        target: { value: 'linha 1\nlinha 2 com texto longo' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'voltar' }))
+
+      expect(screen.queryByLabelText('Descrição')).not.toBeInTheDocument()
+      const summary = screen.getByRole('button', { name: /linha 1/ })
+      expect(summary).toBeInTheDocument()
+
+      fireEvent.click(summary)
+      expect(screen.getByLabelText('Descrição')).toHaveValue('linha 1\nlinha 2 com texto longo')
+    })
+
+    it('keeps the shortcut when there is no text (FR-005)', () => {
+      renderForm()
+      openDescription()
+      fireEvent.click(screen.getByRole('button', { name: 'voltar' }))
+      expect(screen.getByRole('button', { name: 'adicionar descrição' })).toBeInTheDocument()
+    })
+
+    it('clears the description with "limpar descrição" (FR-003)', () => {
+      renderForm()
+      openDescription()
+      fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'texto a apagar' } })
+      fireEvent.click(screen.getByRole('button', { name: 'limpar descrição' }))
+
+      expect(screen.queryByLabelText('Descrição')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'adicionar descrição' })).toBeInTheDocument()
+    })
+  })
+
+  describe('confirmação antes de salvar', () => {
+    it('opens the dialog with title and board instead of saving (FR-006)', async () => {
+      mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+      renderForm()
+      fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+      expect(await screen.findByRole('dialog')).toBeInTheDocument()
+      expect(screen.getByText(/Comprar leite/)).toBeInTheDocument()
+      expect(screen.getByText(/Pessoal/)).toBeInTheDocument()
+      expect(mockedCreateCard).not.toHaveBeenCalled()
+    })
+
+    it('does nothing on cancel and keeps the form (FR-007)', async () => {
+      renderForm()
+      fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancelar' }))
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Título')).toHaveValue('Comprar leite')
+      expect(mockedCreateCard).not.toHaveBeenCalled()
+    })
+
+    it('creates exactly once on confirm (FR-007)', async () => {
+      mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+      renderForm()
+      fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirmar' }))
+
+      await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Card criado!'))
+      expect(mockedCreateCard).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not open the dialog for an empty title (FR-008)', async () => {
+      renderForm()
+      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('O título é obrigatório.')
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(mockedCreateCard).not.toHaveBeenCalled()
+    })
   })
 })
 

@@ -131,6 +131,7 @@ export default function App() {
             ) : (
               <CardForm
                 selectedBoardId={selectedBoardId}
+                boardName={boards.find((board) => board.id === selectedBoardId)?.name ?? ''}
                 boardsLoading={loading}
                 boardsError={error}
                 labels={labels}
