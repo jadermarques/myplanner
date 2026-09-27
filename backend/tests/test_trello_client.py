@@ -70,6 +70,33 @@ def test_create_card_with_label() -> None:
     assert card_id == "card-1"
 
 
+def test_create_card_sends_desc_when_present() -> None:
+    captured: dict[str, str | None] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["desc"] = request.url.params.get("desc")
+        return httpx.Response(200, json={"id": "card-1"})
+
+    client = _make_client(handler)
+    try:
+        _run(client.create_card("T", "list-1", None, "linha 1\nlinha 2"))
+    finally:
+        _run(client.aclose())
+    assert captured["desc"] == "linha 1\nlinha 2"
+
+
+def test_create_card_omits_desc_when_absent() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "desc" not in request.url.params
+        return httpx.Response(200, json={"id": "card-1"})
+
+    client = _make_client(handler)
+    try:
+        _run(client.create_card("T", "list-1"))
+    finally:
+        _run(client.aclose())
+
+
 def test_retries_on_429() -> None:
     calls = {"n": 0}
 

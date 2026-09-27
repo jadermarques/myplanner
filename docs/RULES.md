@@ -10,9 +10,13 @@ código (ex.: `R3`). Ver `docs/TESTS_STRATEGY.md`.
 - **R2**: O token do Trello existe somente no servidor (nunca no cliente).
 - **R3**: As prioridades de um card limitam-se aos labels configurados em
   `trello.priority_labels` (Muito alta, Alta, Média, Baixa, Muito baixa).
-- **R4**: Nesta versão não há campo descrição no card (fora de escopo).
+- **R4**: ~~Nesta versão não há campo descrição no card (fora de escopo).~~ **REVOGADA** pela
+  feature `006-descricao-do-card` (2026-09-26) — substituída pela R6.
 - **R5**: O card é criado em um board selecionado; o board padrão é `last_used`
   (config `ui.default_board`).
+- **R6**: A descrição do card é **opcional**, limitada a **2.000 caracteres**, existe apenas na
+  criação (não há edição) e é enviada ao Trello exatamente como digitada — sem formatação
+  interpretada e sem alterar quebras de linha.
 
 ## S — Segurança
 

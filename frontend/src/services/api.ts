@@ -80,11 +80,17 @@ export async function createCard(
   title: string,
   boardId: string,
   priority?: string,
+  description?: string,
 ): Promise<{ card_id: string }> {
   const res = await fetch(`${BASE_URL}/cards`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
-    body: JSON.stringify({ title, board_id: boardId, priority: priority ?? null }),
+    body: JSON.stringify({
+      title,
+      board_id: boardId,
+      priority: priority ?? null,
+      description: description ?? null,
+    }),
   })
   if (!res.ok) throw new Error(await detailOr(res, `create card failed: ${res.status}`))
   return (await res.json()) as { card_id: string }

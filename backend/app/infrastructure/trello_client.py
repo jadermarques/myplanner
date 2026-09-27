@@ -51,10 +51,18 @@ class TrelloClient:
                 return label["id"]
         return None
 
-    async def create_card(self, name: str, list_id: str, id_labels: list[str] | None = None) -> str:
+    async def create_card(
+        self,
+        name: str,
+        list_id: str,
+        id_labels: list[str] | None = None,
+        description: str | None = None,
+    ) -> str:
         params: dict = {**self._auth, "name": name, "idList": list_id}
         if id_labels:
             params["idLabels"] = ",".join(id_labels)
+        if description:
+            params["desc"] = description
         resp = await self._request("POST", "/cards", params=params)
         return resp.json()["id"]
 

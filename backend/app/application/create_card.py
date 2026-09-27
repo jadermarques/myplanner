@@ -1,4 +1,4 @@
-"""Use case: create a Trello card from title + board + optional priority."""
+"""Use case: create a Trello card from title + board + optional priority and description."""
 from app.config import settings
 from app.domain.card import Card
 from app.infrastructure.trello_client import TrelloClient
@@ -9,8 +9,9 @@ async def create_card(
     title: str,
     board_id: str,
     priority: str | None = None,
+    description: str | None = None,
 ) -> str:
-    card = Card(title=title, board_id=board_id, priority=priority)
+    card = Card(title=title, board_id=board_id, priority=priority, description=description)
     if card.priority and card.priority not in settings.trello.priority_labels:
         raise ValueError(f"invalid priority: {card.priority}")
 
@@ -21,4 +22,4 @@ async def create_card(
         if label_id:
             label_ids.append(label_id)
 
-    return await client.create_card(card.title, list_id, label_ids or None)
+    return await client.create_card(card.title, list_id, label_ids or None, card.description)

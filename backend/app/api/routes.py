@@ -15,6 +15,7 @@ class CreateCardRequest(BaseModel):
     title: str
     board_id: str
     priority: str | None = None
+    description: str | None = None
 
 
 def get_client() -> TrelloClient:
@@ -35,7 +36,9 @@ async def create_card(
     client: TrelloClient = Depends(get_client),
 ) -> dict[str, str]:
     try:
-        card_id = await create_card_use_case(client, req.title, req.board_id, req.priority)
+        card_id = await create_card_use_case(
+            client, req.title, req.board_id, req.priority, req.description
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except httpx.HTTPStatusError as exc:

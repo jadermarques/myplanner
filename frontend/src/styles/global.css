@@ -159,3 +159,46 @@ body {
   cursor: pointer;
 }
 
+
+.link-button {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  background: none;
+  border: none;
+  color: #93c5fd;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.description-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.description-field textarea {
+  min-height: 96px;
+  max-height: 40vh;
+  overflow-y: auto;
+  resize: vertical;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #f8fafc;
+  font: inherit;
+}
+
+.counter {
+  align-self: flex-end;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.counter.over {
+  color: #fca5a5;
+  font-weight: 600;
+}
+

@@ -80,7 +80,9 @@ Como usuário único, seleciono uma prioridade entre os labels configurados (Mui
 - **FR-003**: O card DEVE ser criado exclusivamente via API REST oficial do Trello; o frontend NUNCA chama o Trello diretamente (regra R1).
 - **FR-004**: O token do Trello DEVE existir somente no servidor (regra R2).
 - **FR-005**: As prioridades DEVEM limitar-se aos labels de `trello.priority_labels` (Muito alta, Alta, Média, Baixa, Muito baixa) (regra R3).
-- **FR-006**: NÃO DEVE haver campo de descrição nesta versão (regra R4).
+- **FR-006**: ~~NÃO DEVE haver campo de descrição nesta versão (regra R4).~~ **SUPERADO** pela
+  feature `006-descricao-do-card` (2026-09-26): o card passou a aceitar uma descrição opcional
+  (até 2.000 caracteres), informada na criação.
 - **FR-007**: O board padrão DEVE ser o último usado (`ui.default_board: last_used`), guardado no localStorage do frontend; no primeiro uso (sem histórico), o padrão é o primeiro board da lista (regra R5).
 - **FR-008**: Em caso de erro, os campos digitados DEVEM ser preservados e uma mensagem acionável DEVE ser exibida — ex.: "Erro ao salvar o card. Tente novamente." (token inválido → mensagem específica). (princípio VI)
 - **FR-009**: Ao salvar com sucesso, o app DEVE exibir a mensagem "Card criado!" e limpar o campo de título (mantendo board e prioridade).

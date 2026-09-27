@@ -16,8 +16,8 @@ class RecordingClient:
     async def find_label_id_by_name(self, board_id: str, name: str) -> str | None:
         return "label-1" if name == "Alta" else None
 
-    async def create_card(self, name: str, list_id: str, id_labels=None) -> str:
-        self.create_card_calls.append((name, list_id, id_labels))
+    async def create_card(self, name: str, list_id: str, id_labels=None, description=None) -> str:
+        self.create_card_calls.append((name, list_id, id_labels, description))
         return "card-1"
 
 
@@ -25,13 +25,31 @@ def test_create_card_applies_label() -> None:
     client = RecordingClient()
     card_id = asyncio.run(create_card(client, "Comprar leite", "b1", "Alta"))
     assert card_id == "card-1"
-    assert client.create_card_calls == [("Comprar leite", "list-1", ["label-1"])]
+    assert client.create_card_calls == [("Comprar leite", "list-1", ["label-1"], None)]
 
 
 def test_create_card_without_priority() -> None:
     client = RecordingClient()
     asyncio.run(create_card(client, "Comprar leite", "b1", None))
-    assert client.create_card_calls == [("Comprar leite", "list-1", None)]
+    assert client.create_card_calls == [("Comprar leite", "list-1", None, None)]
+
+
+def test_create_card_forwards_the_description() -> None:
+    client = RecordingClient()
+    asyncio.run(create_card(client, "Comprar leite", "b1", None, "linha 1\nlinha 2"))
+    assert client.create_card_calls == [("Comprar leite", "list-1", None, "linha 1\nlinha 2")]
+
+
+def test_create_card_normalizes_a_blank_description() -> None:
+    client = RecordingClient()
+    asyncio.run(create_card(client, "Comprar leite", "b1", None, "   "))
+    assert client.create_card_calls == [("Comprar leite", "list-1", None, None)]
+
+
+def test_create_card_rejects_description_above_the_limit() -> None:
+    client = RecordingClient()
+    with pytest.raises(ValueError):
+        asyncio.run(create_card(client, "T", "b1", None, "x" * 2001))
 
 
 def test_create_card_rejects_invalid_priority() -> None:
