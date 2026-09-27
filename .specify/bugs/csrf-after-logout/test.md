@@ -11,6 +11,9 @@
 O sintoma não reproduz: o logout encerra a sessão de verdade e o cookie de CSRF não fica mais
 faltando em silêncio (a renovação o reemite). Nenhuma regressão nas suítes existentes.
 
+**Confirmação final do dono (2026-09-26)**: após o fix, **salvar o card funcionou** no navegador
+real — e sem precisar sair e entrar de novo, porque a auto-cura reemitiu o cookie de CSRF.
+
 ## Checks Performed
 
 | Check | Command / Action | Result | Notes |
@@ -48,8 +51,9 @@ tests/test_routes_auth.py::test_csrf_cookie_is_reissued_on_authenticated_request
 - O navegador que já estava no estado quebrado (sessão válida, sem cookie de CSRF) se recupera
   sozinho na primeira requisição autenticada — não é preciso sair e entrar de novo.
 - A renovação passa a emitir 2 `Set-Cookie` por resposta autenticada em vez de 1 (desprezível).
-- Não foi exercitada a criação de card real contra a API do Trello (exigiria chamada externa
-  autorizada); a barreira que falhava (o `403`) foi validada no cliente HTTP real.
+- ~~Não foi exercitada a criação de card real contra a API do Trello (exigiria chamada externa
+  autorizada); a barreira que falhava (o `403`) foi validada no cliente HTTP real.~~
+  **Resolvido em 2026-09-26**: o dono confirmou a criação real do card no app após o fix.
 
 ## Recommendation
 
