@@ -3,13 +3,11 @@ import { setPassword as submitPassword } from '../services/api'
 
 interface SetPasswordScreenProps {
   onSuccess: () => void
-  totpRequired: boolean
 }
 
-export default function SetPasswordScreen({ onSuccess, totpRequired }: SetPasswordScreenProps) {
+export default function SetPasswordScreen({ onSuccess }: SetPasswordScreenProps) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
-  const [totp, setTotp] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,7 +18,7 @@ export default function SetPasswordScreen({ onSuccess, totpRequired }: SetPasswo
       return
     }
     try {
-      await submitPassword(password, totpRequired ? totp : undefined)
+      await submitPassword(password)
       onSuccess()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao definir a senha.')
@@ -45,16 +43,6 @@ export default function SetPasswordScreen({ onSuccess, totpRequired }: SetPasswo
           placeholder="Confirmar senha"
           aria-label="Confirmar senha"
         />
-        {totpRequired && (
-          <input
-            type="text"
-            inputMode="numeric"
-            value={totp}
-            onChange={(e) => setTotp(e.target.value)}
-            placeholder="Código do autenticador"
-            aria-label="Código TOTP"
-          />
-        )}
         <button type="submit">Salvar</button>
         {error && (
           <p className="error" role="alert">

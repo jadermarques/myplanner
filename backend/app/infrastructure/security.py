@@ -1,22 +1,19 @@
-"""Session (signed cookie), CSRF, progressive lockout and security headers."""
+"""Session (signed cookie), CSRF and security headers."""
 import secrets
-import time
 
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
 SESSION_COOKIE = "session"
 CSRF_COOKIE = "csrf_token"
 SESSION_MAX_AGE_SECONDS = 90 * 24 * 60 * 60  # 90 days
-LOCKOUT_THRESHOLD = 5
-LOCKOUT_BASE_SECONDS = 30
 
 
 class SessionManager:
     def __init__(self, secret: str) -> None:
         self._serializer = URLSafeTimedSerializer(secret, salt="session")
 
-    def create(self, device_id: str = "") -> str:
-        return self._serializer.dumps({"authenticated": True, "device_id": device_id})
+    def create(self) -> str:
+        return self._serializer.dumps({"authenticated": True})
 
     def read(self, token: str) -> dict | None:
         try:
@@ -27,29 +24,6 @@ class SessionManager:
     def is_valid(self, token: str) -> bool:
         data = self.read(token)
         return bool(data and data.get("authenticated"))
-
-
-class LockoutTracker:
-    """Progressive lockout: 5 failures → 30 s, doubling each extra failure (S5)."""
-
-    def __init__(self, threshold: int = LOCKOUT_THRESHOLD, base_seconds: float = LOCKOUT_BASE_SECONDS) -> None:
-        self._threshold = threshold
-        self._base = base_seconds
-        self._failed = 0
-        self._locked_until = 0.0
-
-    def seconds_until_unlock(self) -> float:
-        return max(0.0, self._locked_until - time.monotonic())
-
-    def record_failure(self) -> None:
-        self._failed += 1
-        if self._failed >= self._threshold:
-            extra = self._failed - self._threshold
-            self._locked_until = time.monotonic() + self._base * (2**extra)
-
-    def record_success(self) -> None:
-        self._failed = 0
-        self._locked_until = 0.0
 
 
 def new_csrf_token() -> str:

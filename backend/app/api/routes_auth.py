@@ -11,33 +11,23 @@ from app.application.auth import (
     login,
     set_password,
 )
-from app.application.devices import (
-    DEVICE_COOKIE,
-    DEVICE_COOKIE_MAX_AGE,
-    get_device_store,
-    register_device,
-)
 from app.config import settings
 from app.domain.password import WeakPasswordError
 from app.infrastructure.security import (
     CSRF_COOKIE,
     SESSION_COOKIE,
     SESSION_MAX_AGE_SECONDS,
-    LockoutTracker,
     SessionManager,
     new_csrf_token,
 )
-from app.infrastructure.totp import verify_totp
 
 router = APIRouter(prefix="/auth")
 
 _sessions = SessionManager(settings.session_secret)
-_lockout = LockoutTracker()
 
 
 class PasswordBody(BaseModel):
     password: str
-    totp: str | None = None
 
 
 class ChangePasswordBody(BaseModel):
@@ -45,10 +35,10 @@ class ChangePasswordBody(BaseModel):
     new_password: str
 
 
-def _start_session(response: Response, device_id: str) -> None:
+def _start_session(response: Response) -> None:
     response.set_cookie(
         SESSION_COOKIE,
-        _sessions.create(device_id),
+        _sessions.create(),
         httponly=True,
         samesite="strict",
         secure=settings.cookie_secure,
@@ -64,76 +54,33 @@ def _start_session(response: Response, device_id: str) -> None:
     )
 
 
-def _set_device_cookie(response: Response, device_id: str) -> None:
-    response.set_cookie(
-        DEVICE_COOKIE,
-        device_id,
-        httponly=True,
-        samesite="strict",
-        secure=settings.cookie_secure,
-        max_age=DEVICE_COOKIE_MAX_AGE,
-    )
-
-
-def _registered_device(request: Request):
-    store = get_device_store()
-    device_id = request.cookies.get(DEVICE_COOKIE, "")
-    return store, (device_id, store.get(device_id) if device_id else None)
-
-
 @router.get("/status")
 def status(request: Request) -> dict[str, bool]:
-    _, (_, device) = _registered_device(request)
     return {
         "password_set": is_password_set(get_password_store()),
         "authenticated": getattr(request.state, "authenticated", False),
-        "device_registered": device is not None,
     }
 
 
 @router.post("/set-password")
-def set_password_route(body: PasswordBody, request: Request, response: Response) -> dict:
-    store, (_, device) = _registered_device(request)
-    if device is None:
-        # Registering a device always demands password + TOTP (FR-001, S4).
-        if not settings.app_totp_secret:
-            raise HTTPException(status_code=400, detail="TOTP não configurado neste servidor")
-        if not body.totp or not verify_totp(settings.app_totp_secret, body.totp):
-            raise HTTPException(status_code=401, detail="Código TOTP inválido.")
+def set_password_route(body: PasswordBody, response: Response) -> dict:
     try:
         set_password(get_password_store(), body.password)
     except (AuthError, WeakPasswordError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if device is None:
-        device = register_device(store, request.headers.get("user-agent", ""))
-        _set_device_cookie(response, device.id)
-    _start_session(response, device.id)
+    _start_session(response)
     return {}
 
 
 @router.post("/login")
-def login_route(body: PasswordBody, request: Request, response: Response) -> dict:
-    if _lockout.seconds_until_unlock() > 0:
-        raise HTTPException(status_code=429, detail="muitas tentativas; tente novamente mais tarde")
+def login_route(body: PasswordBody, response: Response) -> dict:
     try:
         ok = login(get_password_store(), body.password)
     except AuthError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not ok:
-        _lockout.record_failure()
         raise HTTPException(status_code=401, detail="Senha incorreta.")
-    _lockout.record_success()
-
-    store, (_, device) = _registered_device(request)
-    if device is None:
-        # New device → TOTP is required (S4).
-        if not settings.app_totp_secret:
-            raise HTTPException(status_code=400, detail="TOTP não configurado neste servidor")
-        if not body.totp or not verify_totp(settings.app_totp_secret, body.totp):
-            raise HTTPException(status_code=401, detail="Código TOTP inválido.")
-        device = register_device(store, request.headers.get("user-agent", ""))
-        _set_device_cookie(response, device.id)
-    _start_session(response, device.id)
+    _start_session(response)
     return {}
 
 

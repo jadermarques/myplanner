@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import CardForm from './components/CardForm'
 import ChangePasswordScreen from './components/ChangePasswordScreen'
-import DeviceList from './components/DeviceList'
 import LoginScreen from './components/LoginScreen'
 import OfflineNotice from './components/OfflineNotice'
 import SetPasswordScreen from './components/SetPasswordScreen'
@@ -12,10 +11,9 @@ import { fetchVersion, logout } from './services/api'
 
 export default function App() {
   const online = useOnlineStatus()
-  const { state, deviceRegistered, refresh } = useAuth()
+  const { state, refresh } = useAuth()
   const [version, setVersion] = useState<string | null>(null)
   const [showChange, setShowChange] = useState(false)
-  const [showDevices, setShowDevices] = useState(false)
   const { boards, loading, error, selectedBoardId, selectBoard } = useBoards(
     state === 'authenticated',
   )
@@ -41,16 +39,12 @@ export default function App() {
           Carregando…
         </p>
       )}
-      {state === 'set-password' && (
-        <SetPasswordScreen onSuccess={refresh} totpRequired={!deviceRegistered} />
-      )}
-      {state === 'login' && <LoginScreen onSuccess={refresh} totpRequired={!deviceRegistered} />}
+      {state === 'set-password' && <SetPasswordScreen onSuccess={refresh} />}
+      {state === 'login' && <LoginScreen onSuccess={refresh} />}
       {state === 'authenticated' && (
         <main className="home">
           <h1 className="title">Inserir card</h1>
-          {showDevices ? (
-            <DeviceList onBack={() => setShowDevices(false)} />
-          ) : showChange ? (
+          {showChange ? (
             <ChangePasswordScreen onDone={() => setShowChange(false)} />
           ) : (
             <CardForm
@@ -62,23 +56,8 @@ export default function App() {
             />
           )}
           <div className="actions">
-            <button
-              type="button"
-              onClick={() => {
-                setShowDevices(false)
-                setShowChange((value) => !value)
-              }}
-            >
+            <button type="button" onClick={() => setShowChange((value) => !value)}>
               Trocar senha
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowChange(false)
-                setShowDevices((value) => !value)
-              }}
-            >
-              Aparelhos
             </button>
             <button type="button" onClick={handleLogout}>
               Sair

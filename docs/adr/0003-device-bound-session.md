@@ -1,6 +1,10 @@
 # ADR 0003 — Sessão vinculada ao aparelho (TOTP e revogação)
 
-**Status**: Aprovado | **Date**: 2026-09-25 | **Feature**: `004-dispositivos`
+**Status**: **SUPERADO** pelo ADR 0004 (2026-09-26) | **Date**: 2026-09-25 | **Feature**: `004-dispositivos`
+
+> ⚠️ **Este ADR não vale mais.** O registro de aparelhos e o TOTP foram removidos na feature
+> `005-senha-unica`; a autenticação voltou a ser **somente por senha**. Ver
+> [ADR 0004](./0004-password-only-auth.md). Mantido apenas como registro histórico.
 
 ## Contexto
 

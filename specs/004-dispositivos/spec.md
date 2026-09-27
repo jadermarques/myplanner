@@ -4,7 +4,11 @@
 
 **Created**: 2026-09-25
 
-**Status**: Draft
+**Status**: **SUPERADA** pela feature `005-senha-unica` (ADR 0004)
+
+> ⚠️ **Esta spec não vale mais.** Aparelhos e TOTP foram removidos; a autenticação voltou a
+> ser somente por senha. Ver `specs/005-senha-unica/spec.md` e
+> `docs/adr/0004-password-only-auth.md`. Mantida como registro histórico.
 
 **Input**: User description: "Registro de novos aparelhos com TOTP (app autenticador) e gerenciamento de aparelhos conectados (lista e revogação individual)."
 

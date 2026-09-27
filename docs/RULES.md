@@ -20,8 +20,10 @@ código (ex.: `R3`). Ver `docs/TESTS_STRATEGY.md`.
 - **S2**: A senha do usuário único é armazenada como hash Argon2id.
 - **S3**: Sessão de 90 dias renovada a cada uso, em cookie `HttpOnly`, `Secure` e
   `SameSite=Strict`.
-- **S4**: TOTP (app autenticador) é exigido apenas ao registrar um novo aparelho.
-- **S5**: Bloqueio progressivo após tentativas de login falhas.
+- **S4**: ~~TOTP (app autenticador) é exigido apenas ao registrar um novo aparelho.~~
+  **REVOGADA** pelo ADR 0004 (2026-09-26) — não há segundo fator; o acesso é somente por senha.
+- **S5**: ~~Bloqueio progressivo após tentativas de login falhas.~~
+  **REVOGADA** pelo ADR 0004 (2026-09-26) — cada tentativa é avaliada de forma independente.
 - **S6**: Proteção CSRF e cabeçalhos de segurança (CSP, HSTS) em todas as respostas.
 - **S7**: HTTPS obrigatório (certificado de IP shortlived com renovação automática).
 - **S8**: Logs nunca registram senha, token, segredo, cookie ou dados pessoais

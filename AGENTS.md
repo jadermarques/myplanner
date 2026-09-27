@@ -58,7 +58,7 @@ Frontend: React + TypeScript + Vite, PWA instalável, mobile-first, alvos de toq
 Preparação para IA (sem uso agora): porta LlmProvider no domínio/aplicação e um adaptador compatível com a API OpenAI, configurado por LLM_PROVIDER, LLM_BASE_URL, LLM_API_KEY e LLM_MODEL. Trocar de modelo não pode exigir mudança de código.
 Regra de Proporcionalidade: POO com encapsulamento e padrões (Repository, Strategy, Factory, Observer, Singleton etc.) só entram quando resolvem um problema concreto e existente, registrado em ADR. É proibido introduzir padrão ou camada "por precaução". Gatilhos obrigatórios de reavaliação de arquitetura (abrir ADR antes de especificar): chegada do banco de dados, primeira funcionalidade com IA, mais de um usuário, mais de 3 integrações externas.
 A7. Configuração e segredos
-.env (nunca versionado, listado no .gitignore e no .dockerignore) guarda somente segredos: TRELLO_API_KEY, TRELLO_TOKEN, APP_PASSWORD_HASH, APP_TOTP_SECRET, SESSION_SECRET, LLM_*. Um .env.example sem valores é versionado.
+.env (nunca versionado, listado no .gitignore e no .dockerignore) guarda somente segredos: TRELLO_API_KEY, TRELLO_TOKEN, APP_PASSWORD_HASH, SESSION_SECRET, LLM_*. Um .env.example sem valores é versionado.
 config/app.yaml (versionado) guarda parâmetros não secretos e alteráveis:
 attachments.max_size_mb: 5
 trello.rate_limit: orçamento abaixo do limite oficial de 100 req/10 s por token, com backoff exponencial em HTTP 429
@@ -69,10 +69,8 @@ A8. Segurança (inegociável; detalhar em docs/SECURITY.md e docs/RULES.md)
 Autenticação obrigatória em todos os endpoints, exceto GET /health.
 Login de usuário único:
 senha forte, armazenada como hash Argon2id;
-TOTP (app autenticador) exigido apenas ao registrar um novo aparelho;
+somente a senha: sem segundo fator (TOTP), sem lista/revogação de aparelhos e sem bloqueio por tentativas (ADR 0004);
 sessão de 90 dias renovada a cada uso, em cookie HttpOnly, Secure e SameSite=Strict;
-lista de aparelhos conectados, com revogação individual;
-bloqueio progressivo após tentativas falhas;
 proteção CSRF e cabeçalhos de segurança (CSP, HSTS).
 Motivo de não usar passkey/WebAuthn: ele não funciona em acesso por IP.
 HTTPS obrigatório, mesmo acessando só por IP: usar certificado Let's Encrypt de IP (perfil shortlived, cerca de 6 dias) com renovação automática. Escolher o proxy (Certbot + Nginx ou Caddy) é item de research.md na spec 002, verificando o suporte real a certificado de IP.

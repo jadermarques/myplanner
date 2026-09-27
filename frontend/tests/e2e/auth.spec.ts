@@ -59,4 +59,22 @@ test('first access: submitting the set-password form creates a session', async (
   await expect(page.getByRole('heading', { name: 'Inserir card' })).toBeVisible()
 })
 
+test('the login screen asks only for the password (FR-002)', async ({ page }) => {
+  await page.route('**/api/auth/status', (route) =>
+    route.fulfill({ json: { password_set: true, authenticated: false } }),
+  )
+  await page.goto('/')
+  await expect(page.getByLabel('Senha')).toBeVisible()
+  await expect(page.getByLabel(/código/i)).toHaveCount(0)
+})
+
+test('the set-password screen asks only for the password (FR-002)', async ({ page }) => {
+  await page.route('**/api/auth/status', (route) =>
+    route.fulfill({ json: { password_set: false, authenticated: false } }),
+  )
+  await page.goto('/')
+  await expect(page.getByLabel('Nova senha')).toBeVisible()
+  await expect(page.getByLabel(/código/i)).toHaveCount(0)
+})
+
 

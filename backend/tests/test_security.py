@@ -1,6 +1,10 @@
-"""Tests for session, CSRF and progressive lockout."""
+"""Tests for session and CSRF helpers."""
+import time
+
+from itsdangerous import URLSafeTimedSerializer
+
 from app.infrastructure.security import (
-    LockoutTracker,
+    SESSION_MAX_AGE_SECONDS,
     SessionManager,
     csrf_tokens_match,
     new_csrf_token,
@@ -20,6 +24,27 @@ def test_session_rejects_other_secret() -> None:
     assert SessionManager("secret-b").is_valid(token) is False
 
 
+def test_session_from_previous_version_stays_valid() -> None:
+    """FR-007: a session created before the change (payload with device_id) still works."""
+    legacy = URLSafeTimedSerializer("secret", salt="session").dumps(
+        {"authenticated": True, "device_id": "aparelho-antigo"}
+    )
+    assert SessionManager("secret").is_valid(legacy) is True
+
+
+def test_session_older_than_90_days_expires() -> None:
+    """FR-005: the session window is 90 days, enforced by the signature timestamp."""
+    assert SESSION_MAX_AGE_SECONDS == 90 * 24 * 60 * 60
+
+    serializer = URLSafeTimedSerializer("secret", salt="session")
+    payload = serializer.dump_payload({"authenticated": True})
+    signer = serializer.make_signer(salt="session")
+    signer.get_timestamp = lambda: int(time.time()) - 91 * 24 * 60 * 60  # type: ignore[method-assign]
+    old_session = signer.sign(payload).decode()
+
+    assert SessionManager("secret").is_valid(old_session) is False
+
+
 def test_csrf_tokens_match() -> None:
     token = new_csrf_token()
     assert csrf_tokens_match(token, token) is True
@@ -27,13 +52,3 @@ def test_csrf_tokens_match() -> None:
     assert csrf_tokens_match(None, token) is False
     assert csrf_tokens_match(token, None) is False
 
-
-def test_lockout_progressive() -> None:
-    tracker = LockoutTracker(threshold=5, base_seconds=30)
-    for _ in range(4):
-        tracker.record_failure()
-    assert tracker.seconds_until_unlock() == 0.0
-    tracker.record_failure()
-    assert tracker.seconds_until_unlock() > 0
-    tracker.record_success()
-    assert tracker.seconds_until_unlock() == 0.0
