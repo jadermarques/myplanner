@@ -20,6 +20,8 @@ __pycache__
 .ruff_cache
 .coverage
 htmlcov
+# Estado local do app (hash da senha): nunca entra em imagem
+backend/.data
 
 # Node
 node_modules

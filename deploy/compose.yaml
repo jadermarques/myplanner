@@ -1,0 +1,68 @@
+# Pacote de produção — ver o roteiro em specs/011-publicacao-em-producao/quickstart.md
+#
+# Só 80 e 443 são publicadas:
+#   80  → validar o certificado do IP (desafio HTTP-01, RFC 8738) e redirecionar para HTTPS
+#   443 → o app (interface + /api)
+# O servidor (8000) e os dados de senha NÃO são publicados: ficam só na rede interna.
+# Segredos vêm de ./deploy/.env, que fica no servidor e nunca entra no Git (FR-004).
+name: myplanner
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      # HTTPS é obrigatório em produção: o cookie de sessão é Secure (S3/S7).
+      COOKIE_SECURE: "true"
+      TZ: America/Sao_Paulo
+    volumes:
+      # Hash da senha criado no primeiro acesso: sobrevive a rebuilds (FR-006/FR-011).
+      - app_data:/app/backend/.data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status == 200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  proxy:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # O IP público: é o nome do certificado (Let's Encrypt por endereço IP).
+      PUBLIC_HOST: ${PUBLIC_HOST:?defina PUBLIC_HOST em deploy/.env (o IP publico do servidor)}
+      TZ: America/Sao_Paulo
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+
+  # Executado sob demanda pelos scripts (primeira emissão e renovação). Não sobe com o app.
+  certbot:
+    # Pinado: identificador de IP exige um certbot recente (é o suporte que passou a usar
+    # CERTBOT_IDENTIFIER em vez de CERTBOT_DOMAIN). Se a tag não existir na sua data, use
+    # `latest` e anote a versão no roteiro.
+    image: certbot/certbot:v5.8.0
+    profiles: ["tools"]
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+
+volumes:
+  app_data:
+  letsencrypt:
+  certbot_www:

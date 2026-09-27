@@ -142,27 +142,33 @@ sudo mkdir -p /opt/myplanner
 sudo chown -R deploy:deploy /opt/myplanner
 ```
 
-### 4. `.env` e certificado HTTPS por IP
+### 4. `.env`, proxy e certificado HTTPS por IP
 
-- Crie `/opt/myplanner/.env` com os segredos (`TRELLO_*`, `APP_*`, `SESSION_SECRET`, `LLM_*`)
-  e defina `COOKIE_SECURE=true` (cookies `Secure` são obrigatórios em produção — S3/S7).
-- Certificado Let's Encrypt de IP (perfil shortlived, ~6 dias) com renovação automática.
-  A escolha do proxy (Certbot + Nginx ou Caddy) é definida na spec 002.
+- Crie `/opt/myplanner/deploy/.env` a partir de `deploy/.env.example` com os segredos (`TRELLO_*`,
+  `SESSION_SECRET`, `APP_PASSWORD_HASH`, `LLM_*`) e **`PUBLIC_HOST`** (o IP público do servidor).
+- `COOKIE_SECURE=true` é fixado pelo próprio `deploy/compose.yaml` em produção (S3/S7).
+- **Proxy decidido**: **Nginx** (interface + `/api`) com **Certbot** emitindo o certificado **do IP**
+  pelo perfil `shortlived` (~6 dias), validado por **HTTP-01** e renovado por webroot — **sem downtime**
+  (ver `specs/011-publicacao-em-producao/research.md`; a decisão estava em aberto na spec 002).
+  Alternativa descartada: Caddy, que para **IP** usa certificado autoassinado (o celular mostraria
+  aviso de segurança).
 
-### 5. Deploy por tag
+### 5. Deploy por tag (um comando)
 
 ```bash
-git fetch --tags
-git checkout v0.1.0    # tag desejada
-# (build + restart dos containers)
+cd /opt/myplanner
+deploy/scripts/publish.sh v0.12.0     # publicar
+deploy/scripts/publish.sh v0.11.0     # reverter para a tag anterior (mesmo comando)
 ```
+
+Primeira publicação no servidor (uma vez): `deploy/scripts/first-publish.sh`.
+Roteiro completo, com verificação, renovação agendada e diagnóstico:
+`specs/011-publicacao-em-producao/quickstart.md`.
 
 ### 6. Rollback
 
-```bash
-git checkout v0.0.X    # tag anterior
-# (build + restart)
-```
+O mesmo `publish.sh`, com a tag anterior. Segredos e volumes (senha, certificado) não são tocados.
+
 
 ## Avisos de segurança (leitura obrigatória)
 
