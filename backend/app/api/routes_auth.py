@@ -85,7 +85,10 @@ def login_route(body: PasswordBody, response: Response) -> dict:
 
 
 @router.post("/logout")
-def logout_route(response: Response) -> dict:
+def logout_route(request: Request, response: Response) -> dict:
+    # Tell the session middleware not to renew the cookies we are deleting
+    # (bug `csrf-after-logout`: the renewal used to resurrect the session).
+    request.state.session_ended = True
     response.delete_cookie(SESSION_COOKIE)
     response.delete_cookie(CSRF_COOKIE)
     return {}

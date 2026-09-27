@@ -47,6 +47,26 @@ def test_login_from_unseen_device_needs_only_the_password(client: TestClient) ->
     assert resp.status_code == 200
 
 
+def test_logout_really_ends_the_session(client: TestClient) -> None:
+    """Regression (bug csrf-after-logout): the middleware resurrected the session cookie."""
+    _define_password(client)
+    assert client.get("/version").status_code == 200
+
+    client.post("/auth/logout")
+
+    assert "session" not in client.cookies
+    assert client.get("/version").status_code == 401
+
+
+def test_csrf_cookie_is_reissued_on_authenticated_requests(client: TestClient) -> None:
+    """The CSRF cookie slides with the session, so it cannot go missing silently."""
+    _define_password(client)
+    client.cookies.delete("csrf_token")
+
+    assert client.get("/version").status_code == 200
+    assert client.cookies.get("csrf_token") is not None
+
+
 def test_login_wrong_password(client: TestClient) -> None:
     _define_password(client)
     client.post("/auth/logout")

@@ -11,6 +11,7 @@ from app.infrastructure.security import (
     SESSION_MAX_AGE_SECONDS,
     SessionManager,
     csrf_tokens_match,
+    new_csrf_token,
 )
 
 _sessions = SessionManager(settings.session_secret)
@@ -23,17 +24,38 @@ class SessionMiddleware(BaseHTTPMiddleware):
         token = request.cookies.get(SESSION_COOKIE)
         request.state.authenticated = bool(token and _sessions.is_valid(token))
         response = await call_next(request)
-        if request.state.authenticated:
-            # sliding renewal: 90 days from now, on every authenticated request
-            response.set_cookie(
-                SESSION_COOKIE,
-                _sessions.create(),
-                httponly=True,
-                samesite="strict",
-                secure=settings.cookie_secure,
-                max_age=SESSION_MAX_AGE_SECONDS,
-            )
+        if request.state.authenticated and not getattr(request.state, "session_ended", False):
+            _renew_cookies(request, response)
         return response
+
+
+def _renew_cookies(request: Request, response: Response) -> None:
+    """Slide the session (and CSRF) window on every authenticated request.
+
+    The session is re-signed with the same payload and the CSRF cookie is re-sent
+    with the value the client already holds (a fresh one when it went missing), so
+    cookie and header can never drift apart — the CSRF cookie used to never be
+    renewed, which left the app unable to write (bug `csrf-after-logout`).
+
+    Must NOT run for a request that just ended the session (logout), otherwise the
+    renewal resurrects the cookie that the route deleted.
+    """
+    response.set_cookie(
+        SESSION_COOKIE,
+        _sessions.create(),
+        httponly=True,
+        samesite="strict",
+        secure=settings.cookie_secure,
+        max_age=SESSION_MAX_AGE_SECONDS,
+    )
+    response.set_cookie(
+        CSRF_COOKIE,
+        request.cookies.get(CSRF_COOKIE) or new_csrf_token(),
+        httponly=False,
+        samesite="strict",
+        secure=settings.cookie_secure,
+        max_age=SESSION_MAX_AGE_SECONDS,
+    )
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
