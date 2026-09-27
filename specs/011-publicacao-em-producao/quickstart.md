@@ -53,8 +53,15 @@ grep -q '^SESSION_SECRET=..' .env && echo 'SESSION_SECRET preenchido'
 ## Passo 2 — Tailscale: instalar, conectar e publicar (uma vez)
 
 ```bash
-deploy/scripts/setup-tailscale.sh
+sudo deploy/scripts/setup-tailscale.sh
 ```
+
+*(precisa de root **só aqui** — ele instala o pacote do Tailscale. Os scripts de publicação rodam como
+`deploy`.)*
+
+> **Se ele parar reclamando de `apt-get update`/`apt_pkg`/`command-not-found`**: conhecido e tratado — o
+> script agora diz qual é a causa e o conserto (reinstalar `python3-apt` ou remover esse ajudante
+> cosmético). Foi exatamente o que aconteceu na primeira publicação, em 27/09/2026.
 
 1. O script instala o Tailscale e pede para **conectar**: ele imprime um **link** — abra no navegador e
    autorize este servidor no seu tailnet.
@@ -128,9 +135,21 @@ reconecta sozinho.
 - Publicar porta do app (`-p 80:80` / `-p 443:443`) — ficar invisível na internet é o objetivo.
 - Commitar `deploy/.env` ou colar segredos em issue/chat/log.
 
-## Limitação desta entrega (honestidade de escopo)
+## Verificação em produção (2026-09-27)
 
-O agente validou o que dava **na máquina de desenvolvimento**: as duas imagens construídas, o app subindo e
-respondendo em `127.0.0.1`, o proxy em modo HTTP interno e a suíte completa de testes verde (0 regressões).
-O agente **não** executa deploy (A11), e a parte do Tailscale depende da sua conta — então a verificação de
-ponta a ponta (SC-001, SC-002, SC-004, SC-006) é feita por você, com os passos acima.
+**Publicado e confirmado pelo dono**: o app abre no celular **sem tela de aviso de segurança** e um card
+foi criado de ponta a ponta. Com isso, ficam verificados:
+
+- **SC-001** (publicar e acessar) e **SC-002** (criar card pelo celular, fora da rede de casa);
+- **SC-003** (0 avisos de segurança no navegador).
+
+Verificado pelo agente, na máquina de desenvolvimento: as duas imagens construídas, o app respondendo em
+`127.0.0.1` (proxy só em loopback), `/api/health` 200, PWA servido, suíte completa verde — **SC-007**.
+
+**Ainda não observados — e por isso NÃO declarados cumpridos** (são de observação futura, com passos na
+seção de diagnóstico):
+
+- **SC-004**: voltar sozinho depois de reiniciar o servidor (`docker compose ps` após um reboot);
+- **SC-006**: certificado sem expirar ao longo do tempo (estado do certificado no console do Tailscale).
+
+O agente **não** executa deploy (A11): da instalação em diante, a execução no servidor é do dono.

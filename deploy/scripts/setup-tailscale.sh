@@ -16,9 +16,34 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Este passo instala pacote do sistema: precisa de root. Os scripts de publicação (first-publish/publish)
+# rodam como `deploy`; só este não.
+if [ "$(id -u)" -ne 0 ]; then
+    echo "erro: rode como root (ele instala o pacote do Tailscale):"
+    echo "    sudo deploy/scripts/setup-tailscale.sh"
+    exit 1
+fi
+
 if ! command -v tailscale >/dev/null 2>&1; then
     echo "1/3 instalando o Tailscale"
+    # O instalador oficial usa apt. Se o apt estiver quebrado, ele morre com um erro confuso lá dentro —
+    # então checamos antes, para dar um diagnóstico útil. Caso real (27/09/2026): o gancho
+    # 'command-not-found' não carregava o módulo apt_pkg, devolvia erro e derrubava o instalador.
+    if ! apt-get update >/dev/null 2>&1; then
+        echo "erro: o 'apt-get update' está falhando nesta máquina, e o instalador do Tailscale depende dele."
+        echo "causa comum em imagens com Python fora do padrão: o gancho 'command-not-found' não carrega o"
+        echo "módulo apt_pkg, devolve erro e derruba qualquer script com 'set -e'. Conserto (escolha um):"
+        echo "    1) apt-get install -y --reinstall python3-apt"
+        echo "    2) apt-get -y remove command-not-found      # é só um ajudante cosmético, não faz falta"
+        echo "depois rode este script de novo."
+        exit 1
+    fi
     curl -fsSL https://tailscale.com/install.sh | sh
+    if ! command -v tailscale >/dev/null 2>&1; then
+        echo "erro: o Tailscale não ficou instalado. Rode 'apt-get update' e veja se ele termina sem erro;"
+        echo "se aparecer algo sobre apt_pkg/command-not-found, aplique o conserto mostrado acima."
+        exit 1
+    fi
 else
     echo "1/3 Tailscale já instalado: $(tailscale version | head -1)"
 fi

@@ -87,8 +87,11 @@ A primeira publicação mostrou que **não existe certificado público para IP p
 - **T018 (validação)**: foi além do previsto — o agente construiu as imagens e subiu o pacote localmente
   (as duas modalidades do proxy na primeira versão e, agora, o proxy HTTP interno respondendo em
   `127.0.0.1`), além de `docker compose config` e da suíte completa.
-- **T019 (convergência honesta)**: mantida — o status continua **"entregue, com verificação em produção
-  pendente do dono"**, porque a emissão do certificado e o acesso pelo celular dependem da conta dele.
+- **T019 (convergência honesta)**: **atualizada em 27/09/2026** — o dono publicou e confirmou em produção:
+  o app abre no celular **sem aviso de segurança** e um card foi criado, de ponta a ponta. Verificados:
+  **SC-001, SC-002 e SC-003**; **SC-007** pelo agente. Continuam **pendentes de observação** e **não**
+  declarados cumpridos: **SC-004** (voltar sozinho após reiniciar o servidor) e **SC-006** (certificado sem
+  expirar ao longo do tempo) — os passos de conferência estão no `quickstart.md`.
 
 
 - T003–T009 antes de T010/T011; T012 depende de T010/T011; T013/T014 dependem de T011 (proxy no ar).
