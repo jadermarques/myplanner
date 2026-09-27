@@ -65,3 +65,18 @@ def test_card_normalizes_a_blank_label() -> None:
 
 def test_card_keeps_the_label_name_intact() -> None:
     assert Card(title="T", board_id="b", label="  Casa  ").label == "Casa"
+
+
+def test_card_without_list_stays_none() -> None:
+    """R8: the destination list is optional."""
+    assert Card(title="T", board_id="b").list_id is None
+
+
+def test_card_normalizes_a_blank_list_id() -> None:
+    """R8: a blank list means "let the app choose"."""
+    for blank in ("", "   ", "\n"):
+        assert Card(title="T", board_id="b", list_id=blank).list_id is None
+
+
+def test_card_keeps_the_list_id_intact() -> None:
+    assert Card(title="T", board_id="b", list_id="  list-2  ").list_id == "list-2"

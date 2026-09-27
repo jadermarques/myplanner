@@ -10,6 +10,10 @@ vi.mock('../../src/services/api', () => ({
 const mockedCreateCard = createCard as Mock
 
 const labels = [{ name: 'Casa', color: 'green' }]
+const lists = [
+  { id: 'list-1', name: 'A fazer' },
+  { id: 'list-2', name: 'Em andamento' },
+]
 
 function renderForm(overrides: Partial<React.ComponentProps<typeof CardForm>> = {}) {
   return render(
@@ -20,6 +24,9 @@ function renderForm(overrides: Partial<React.ComponentProps<typeof CardForm>> = 
       labels={labels}
       selectedLabel=""
       onSelectLabel={() => {}}
+      lists={[]}
+      selectedListId=""
+      onSelectList={() => {}}
       {...overrides}
     />,
   )
@@ -51,7 +58,14 @@ describe('CardForm', () => {
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Card criado!'))
-    expect(mockedCreateCard).toHaveBeenCalledWith('Comprar leite', 'b1', undefined, undefined, undefined)
+    expect(mockedCreateCard).toHaveBeenCalledWith(
+      'Comprar leite',
+      'b1',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    )
   })
 
   it('keeps the description collapsed by default (FR-001)', () => {
@@ -79,6 +93,7 @@ describe('CardForm', () => {
         'b1',
         undefined,
         'linha 1\nlinha 2',
+        undefined,
         undefined,
       ),
     )
@@ -158,6 +173,7 @@ describe('CardForm', () => {
         undefined,
         undefined,
         'Casa',
+        undefined,
       ),
     )
   })
@@ -172,6 +188,7 @@ describe('CardForm', () => {
       expect(mockedCreateCard).toHaveBeenCalledWith(
         'Comprar leite',
         'b1',
+        undefined,
         undefined,
         undefined,
         undefined,
@@ -196,6 +213,38 @@ describe('CardForm', () => {
     renderForm({ labels: [] })
     expect(screen.queryByRole('radiogroup', { name: 'Etiqueta' })).not.toBeInTheDocument()
     expect(screen.getByRole('radiogroup', { name: 'Prioridade' })).toBeInTheDocument()
+  })
+
+  it('sends the chosen destination list with the card (FR-006)', async () => {
+    mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
+    renderForm({ lists, selectedListId: 'list-2' })
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() =>
+      expect(mockedCreateCard).toHaveBeenCalledWith(
+        'Comprar leite',
+        'b1',
+        undefined,
+        undefined,
+        undefined,
+        'list-2',
+      ),
+    )
+  })
+
+  it('shows the destination list as a single choice (FR-001/FR-002)', () => {
+    const onSelectList = vi.fn()
+    renderForm({ lists, selectedListId: 'list-1', onSelectList })
+    expect(screen.getByLabelText('Lista de destino')).toHaveValue('list-1')
+    fireEvent.change(screen.getByLabelText('Lista de destino'), { target: { value: 'list-2' } })
+    expect(onSelectList).toHaveBeenCalledWith('list-2')
+    expect(onSelectList).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not show the destination list field when there are no lists (FR-005)', () => {
+    renderForm({ lists: [] })
+    expect(screen.queryByLabelText('Lista de destino')).not.toBeInTheDocument()
   })
 })
 

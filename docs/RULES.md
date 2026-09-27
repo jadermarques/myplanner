@@ -21,6 +21,10 @@ código (ex.: `R3`). Ver `docs/TESTS_STRATEGY.md`.
   criação; se tiver desaparecido, o card é criado sem ela (nunca falha por causa disso). As
   etiquetas usadas como prioridade **não** são oferecidas de novo (ver R3) e etiquetas **sem nome**
   não são oferecidas.
+- **R8**: A lista de destino do card é **opcional** e o padrão é sempre a **primeira lista aberta** do
+  board. Uma lista informada só é usada se **pertencer ao board**; caso contrário (lista de outro
+  board, apagada ou vazia) o card vai para a primeira lista — **nunca** para fora do board e
+  **nunca** com erro.
 
 ## S — Segurança
 

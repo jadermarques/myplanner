@@ -9,6 +9,7 @@ import { useAuth } from './hooks/useAuth'
 import { useBoards } from './hooks/useBoards'
 import { useKeyboardInset } from './hooks/useKeyboardInset'
 import { useLabels } from './hooks/useLabels'
+import { useLists } from './hooks/useLists'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { fetchVersion, logout } from './services/api'
 
@@ -24,6 +25,9 @@ export default function App() {
     state === 'authenticated',
   )
   const { labels, selectedLabel, selectLabel } = useLabels(
+    state === 'authenticated' ? selectedBoardId : '',
+  )
+  const { lists, selectedListId, selectList } = useLists(
     state === 'authenticated' ? selectedBoardId : '',
   )
 
@@ -132,6 +136,9 @@ export default function App() {
                 labels={labels}
                 selectedLabel={selectedLabel}
                 onSelectLabel={selectLabel}
+                lists={lists}
+                selectedListId={selectedListId}
+                onSelectList={selectList}
               />
             )}
 

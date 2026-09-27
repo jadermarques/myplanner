@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import LabelSelect from './LabelSelect'
+import ListSelect from './ListSelect'
 import PrioritySelect from './PrioritySelect'
-import { Label, createCard } from '../services/api'
+import { BoardList, Label, createCard } from '../services/api'
 
 /** Same limit the domain enforces (backend is the authority). */
 const MAX_DESCRIPTION_CHARS = 2000
@@ -13,6 +14,9 @@ interface CardFormProps {
   labels: Label[]
   selectedLabel: string
   onSelectLabel: (label: string) => void
+  lists: BoardList[]
+  selectedListId: string
+  onSelectList: (listId: string) => void
 }
 
 /**
@@ -29,6 +33,9 @@ export default function CardForm({
   labels,
   selectedLabel,
   onSelectLabel,
+  lists,
+  selectedListId,
+  onSelectList,
 }: CardFormProps) {
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState('')
@@ -62,6 +69,7 @@ export default function CardForm({
         priority || undefined,
         description.trim() || undefined,
         selectedLabel || undefined,
+        selectedListId || undefined,
       )
       setSuccess(true)
       setTitle('')
@@ -156,6 +164,10 @@ export default function CardForm({
         >
           adicionar descrição
         </button>
+      )}
+
+      {lists.length > 0 && (
+        <ListSelect lists={lists} value={selectedListId} onChange={onSelectList} />
       )}
 
       {boardsLoading && <p className="msg msg--info">Carregando board…</p>}

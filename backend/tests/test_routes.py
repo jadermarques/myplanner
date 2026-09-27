@@ -11,8 +11,11 @@ class FakeTrelloClient:
     def __init__(self) -> None:
         self.last_description: str | None = None
         self.last_label_ids: list[str] | None = None
+        self.last_list_id: str | None = None
         self.listed_labels_for: list[str] = []
+        self.listed_lists_for: list[str] = []
         self.fail_labels = False
+        self.fail_lists = False
 
     async def list_boards(self) -> list[dict[str, str]]:
         return [{"id": "b1", "name": "Pessoal"}]
@@ -33,9 +36,23 @@ class FakeTrelloClient:
             )
         return [{"name": "Alta", "color": "red"}, {"name": "Casa", "color": "green"}]
 
+    async def list_lists(self, board_id: str) -> list[dict[str, str]]:
+        self.listed_lists_for.append(board_id)
+        if self.fail_lists:
+            raise httpx.HTTPStatusError(
+                "boom",
+                request=httpx.Request("GET", "https://api.trello.com/1/boards/b1/lists"),
+                response=httpx.Response(500),
+            )
+        return [
+            {"id": "list-1", "name": "A fazer"},
+            {"id": "list-2", "name": "Em andamento"},
+        ]
+
     async def create_card(self, name: str, list_id: str, id_labels=None, description=None) -> str:
         self.last_description = description
         self.last_label_ids = id_labels
+        self.last_list_id = list_id
         return "card-1"
 
 
@@ -176,3 +193,58 @@ def test_create_card_without_label_keeps_the_current_payload() -> None:
     resp = client.post("/cards", json={"title": "T", "board_id": "b1"})
     assert resp.status_code == 201
     assert fake.last_label_ids is None
+
+
+def test_list_board_lists_endpoint() -> None:
+    """FR-001: the capture screen needs the open lists of the board."""
+    client, fake = _client_with_fake()
+    resp = client.get("/boards/b1/lists")
+    assert resp.status_code == 200
+    assert resp.json() == [
+        {"id": "list-1", "name": "A fazer"},
+        {"id": "list-2", "name": "Em andamento"},
+    ]
+    assert fake.listed_lists_for == ["b1"]
+
+
+def test_list_board_lists_requires_a_session() -> None:
+    """S1: the new endpoint is protected like every other one."""
+    app.dependency_overrides[get_client] = lambda: FakeTrelloClient()
+    app.dependency_overrides.pop(require_auth, None)
+    try:
+        assert TestClient(app).get("/boards/b1/lists").status_code == 401
+    finally:
+        app.dependency_overrides[require_auth] = lambda: None
+
+
+def test_list_board_lists_maps_a_trello_failure_to_502() -> None:
+    fake = FakeTrelloClient()
+    fake.fail_lists = True
+    app.dependency_overrides[get_client] = lambda: fake
+    app.dependency_overrides[require_auth] = lambda: None
+    resp = TestClient(app).get("/boards/b1/lists")
+    assert resp.status_code == 502
+
+
+def test_create_card_lands_in_the_chosen_list() -> None:
+    """FR-006: the card is created in the list the user picked."""
+    client, fake = _client_with_fake()
+    resp = client.post("/cards", json={"title": "T", "board_id": "b1", "list_id": "list-2"})
+    assert resp.status_code == 201
+    assert fake.last_list_id == "list-2"
+
+
+def test_a_foreign_list_never_receives_the_card() -> None:
+    """SC-003: a manipulated request cannot create the card outside the board."""
+    client, fake = _client_with_fake()
+    resp = client.post("/cards", json={"title": "T", "board_id": "b1", "list_id": "list-de-outro"})
+    assert resp.status_code == 201
+    assert fake.last_list_id == "list-1"
+
+
+def test_create_card_without_list_id_keeps_the_first_list() -> None:
+    """SC-002: unchanged behaviour when the field is not touched."""
+    client, fake = _client_with_fake()
+    resp = client.post("/cards", json={"title": "T", "board_id": "b1"})
+    assert resp.status_code == 201
+    assert fake.last_list_id == "list-1"

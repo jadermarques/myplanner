@@ -139,3 +139,28 @@ def test_list_labels_returns_named_labels_with_their_colour() -> None:
         {"name": "Casa", "color": "green"},
         {"name": "Trabalho", "color": ""},
     ]
+
+
+def test_list_lists_returns_open_lists_with_id_and_name() -> None:
+    """FR-009: the lists come from the board, only the open ones, in board order."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/1/boards/b1/lists"
+        assert request.url.params["filter"] == "open"
+        return httpx.Response(
+            200,
+            json=[
+                {"id": "l1", "name": "A fazer", "closed": False},
+                {"id": "l2", "name": "Em andamento", "closed": False},
+            ],
+        )
+
+    client = _make_client(handler)
+    try:
+        lists = _run(client.list_lists("b1"))
+    finally:
+        _run(client.aclose())
+    assert lists == [
+        {"id": "l1", "name": "A fazer"},
+        {"id": "l2", "name": "Em andamento"},
+    ]

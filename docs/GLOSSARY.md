@@ -6,6 +6,8 @@
   `trello.priority_labels` (`R3`); aplicada como label do Trello.
 - **Etiqueta**: classificação **já existente** no board do Trello (nome + cor) que pode acompanhar o
   card; escolhida em um toque, opcional e aplicada apenas na criação (`R7`).
+- **Lista de destino**: lista aberta do board onde o card será criado; escolha única, opcional, com a
+  primeira lista como padrão (`R8`).
 - **PWA**: Progressive Web App — app web instalável, mobile-first.
 - **BFF**: Backend for Frontend — servidor FastAPI que intermedia o PWA e o Trello.
 - **Token do Trello**: credencial de acesso à API do Trello; vive somente no servidor.

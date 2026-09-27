@@ -67,6 +67,16 @@ class TrelloClient:
             if label.get("name")
         ]
 
+    async def list_lists(self, board_id: str) -> list[dict[str, str]]:
+        """Open lists of the board, in board order (FR-001/FR-009).
+
+        The first item is the default destination of a card (R8).
+        """
+        resp = await self._request(
+            "GET", f"/boards/{board_id}/lists", params={**self._auth, "filter": "open"}
+        )
+        return [{"id": item["id"], "name": item["name"]} for item in resp.json()]
+
     async def create_card(
         self,
         name: str,

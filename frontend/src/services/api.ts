@@ -10,6 +10,11 @@ export interface Label {
   color: string
 }
 
+export interface BoardList {
+  id: string
+  name: string
+}
+
 export interface AuthStatus {
   password_set: boolean
   authenticated: boolean
@@ -88,12 +93,20 @@ export async function fetchLabels(boardId: string): Promise<Label[]> {
   return (await res.json()) as Label[]
 }
 
+/** Open lists of the board, in board order (the first one is the default destination). */
+export async function fetchLists(boardId: string): Promise<BoardList[]> {
+  const res = await fetch(`${BASE_URL}/boards/${encodeURIComponent(boardId)}/lists`)
+  if (!res.ok) throw new Error(`lists request failed: ${res.status}`)
+  return (await res.json()) as BoardList[]
+}
+
 export async function createCard(
   title: string,
   boardId: string,
   priority?: string,
   description?: string,
   label?: string,
+  listId?: string,
 ): Promise<{ card_id: string }> {
   const res = await fetch(`${BASE_URL}/cards`, {
     method: 'POST',
@@ -104,6 +117,7 @@ export async function createCard(
       priority: priority ?? null,
       description: description ?? null,
       label: label ?? null,
+      list_id: listId ?? null,
     }),
   })
   if (!res.ok) throw new Error(await detailOr(res, `create card failed: ${res.status}`))

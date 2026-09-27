@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.api.dependencies import require_auth
 from app.application.create_card import create_card as create_card_use_case
 from app.application.list_labels import list_labels as list_labels_use_case
+from app.application.list_lists import list_lists as list_lists_use_case
 from app.config import settings
 from app.infrastructure.trello_client import TrelloClient
 
@@ -18,6 +19,7 @@ class CreateCardRequest(BaseModel):
     priority: str | None = None
     description: str | None = None
     label: str | None = None
+    list_id: str | None = None
 
 
 def get_client() -> TrelloClient:
@@ -44,6 +46,18 @@ async def list_board_labels(
         raise _http_from_trello(exc, "erro ao listar etiquetas") from exc
 
 
+@router.get("/boards/{board_id}/lists", dependencies=[Depends(require_auth)])
+async def list_board_lists(
+    board_id: str,
+    client: TrelloClient = Depends(get_client),
+) -> list[dict[str, str]]:
+    """Open lists offered as the destination of the card (FR-001)."""
+    try:
+        return await list_lists_use_case(client, board_id)
+    except httpx.HTTPStatusError as exc:
+        raise _http_from_trello(exc, "erro ao listar listas") from exc
+
+
 @router.post("/cards", status_code=201, dependencies=[Depends(require_auth)])
 async def create_card(
     req: CreateCardRequest,
@@ -51,7 +65,7 @@ async def create_card(
 ) -> dict[str, str]:
     try:
         card_id = await create_card_use_case(
-            client, req.title, req.board_id, req.priority, req.description, req.label
+            client, req.title, req.board_id, req.priority, req.description, req.label, req.list_id
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
