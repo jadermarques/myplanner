@@ -46,6 +46,8 @@ test('above the limit the Save button is blocked and the text is kept', async ({
   await page.getByLabel('Descrição').fill(long)
 
   await expect(page.getByText('2001/2000')).toBeVisible()
+  // SC-003: com um texto longo aberto, o botão continua alcançável no celular
+  await expect(page.getByRole('button', { name: 'Salvar' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Salvar' })).toBeDisabled()
   await expect(page.getByLabel('Descrição')).toHaveValue(long)
 })

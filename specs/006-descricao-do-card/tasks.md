@@ -97,3 +97,14 @@
   existentes de `POST /cards` ganham casos novos, sem enfraquecer os atuais.
 - Sem banco de dados, sem dependências novas; a descrição só existe na criação.
 - `[P]` = arquivos distintos, sem dependência.
+
+---
+
+## Phase 8: Convergence
+
+> Resultado do `/speckit.converge` de 2026-09-26 (2 achados de severidade LOW).
+> Ambos são de verificação/documentação — nenhuma mudança de comportamento.
+
+- [X] T021 [P] `docs/GLOSSARY.md`: o verbete **Card** deve incluir a descrição opcional (hoje diz "título + prioridade + board") — per FR-009 (partial)
+- [X] T022 [P] Write E2E `frontend/tests/e2e/description.spec.ts`: asserir explicitamente que o botão **Salvar** permanece **visível/alcançável** com um texto longo aberto, no viewport de celular — per SC-003 (partial)
+

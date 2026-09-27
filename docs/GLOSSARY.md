@@ -1,6 +1,6 @@
 # Glossário — myplanner
 
-- **Card**: unidade criada no Trello (título + prioridade + board).
+- **Card**: unidade criada no Trello (título + prioridade + board + descrição opcional).
 - **Board**: quadro do Trello onde o card é criado.
 - **PWA**: Progressive Web App — app web instalável, mobile-first.
 - **BFF**: Backend for Frontend — servidor FastAPI que intermedia o PWA e o Trello.
