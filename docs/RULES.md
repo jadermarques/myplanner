@@ -38,7 +38,11 @@ código (ex.: `R3`). Ver `docs/TESTS_STRATEGY.md`.
 - **S5**: ~~Bloqueio progressivo após tentativas de login falhas.~~
   **REVOGADA** pelo ADR 0004 (2026-09-26) — cada tentativa é avaliada de forma independente.
 - **S6**: Proteção CSRF e cabeçalhos de segurança (CSP, HSTS) em todas as respostas.
-- **S7**: HTTPS obrigatório (certificado de IP shortlived com renovação automática).
+- **S7** (revisada pelo ADR 0005): HTTPS obrigatório na ponta que o navegador vê, com certificado público
+  válido — hoje servido pela camada de rede privada (Tailscale, nome `*.ts.net`), com renovação gerenciada
+  por ela. **Nenhuma porta do app é publicada para a internet** (só o SSH da administração); o trecho
+  interno (`tailscaled → proxy`) é HTTP em loopback e não sai da máquina. O certificado público de IP
+  **não existe** — o Let's Encrypt não emite para IP puro (ver research D8 da feature 011).
 - **S8**: Logs nunca registram senha, token, segredo, cookie ou dados pessoais
   (e-mail, telefone, CPF) em texto plano.
 - **S9**: Segredos existem somente em `.env` (nunca versionado).

@@ -75,3 +75,36 @@
 - Os cabeçalhos (CSP/HSTS) são aplicados pelo middleware do FastAPI, que **não vê** os arquivos estáticos
   servidos pelo proxy. **Decisão**: o Nginx aplica HSTS e cabeçalhos básicos também no conteúdo estático,
   para que o PWA inteiro herde a política (S7).
+
+## D8 — **Falsificação**: o certificado público de IP não existe (corrige D1/D2/D3)
+
+- **O que aconteceu na primeira publicação real** (v0.12.0, 27/09/2026, servidor do dono): o Certbot
+  recusou a emissão, duas vezes (com e sem `--preferred-profile`), com esta mensagem, transcrita:
+
+  ```
+  Requested name 164.163.11.58 is an IP address.
+  The Let's Encrypt certificate authority will not issue certificates for a bare IP address.
+  ```
+
+  O cliente recusa **antes mesmo do desafio** — não foi firewall, não foi perfil, não foi a porta 80.
+- **Onde este research errou (D1/D2/D3 estão superados)**: eu inferi suporte de IP do RFC 8738 (que
+  define o identificador `ip` e admite `http-01`/`tls-alpn-01`) e da documentação do Certbot (que fala em
+  "domínio **ou endereço IP**"). Faltou verificar **disponibilidade de emissão na CA real** — e a própria
+  página de perfis do Let's Encrypt ressalva que alguns perfis ficam "locked behind an allowlist so we can
+  roll them out slowly". *Lição registrada: documentação de protocolo e de cliente não provam que uma CA
+  emite; isso se confirma emitindo, não deduzindo.*
+- **Decisão nova (com o dono)**: acesso por **rede privada com Tailscale**, registrada em
+  `docs/adr/0005-acesso-por-rede-privada.md`. Fatos verificados na documentação do Tailscale, que
+  sustentam a decisão:
+  - certificado **Let's Encrypt para nomes `*.ts.net`**, resolvido por **DNS-01** (o Tailscale cria o
+    registro TXT no ts.net) → **nenhuma porta precisa ser aberta** para validar;
+  - `tailscale serve` entrega HTTPS com **certificado válido**, apenas para os aparelhos **dentro** do
+    tailnet (o modo público é o `funnel`, que não usamos);
+  - com `-bg`, o `serve` **retoma sozinho depois de reiniciar** a máquina;
+  - o certificado é gerenciado pelo `tailscaled` (com status no console). O caminho `tailscale cert`
+    (arquivo em disco) **não** é usado, porque nele a renovação passaria a ser nossa responsabilidade.
+- **Efeito no pacote**: saem o Certbot, o volume de certificado, o `renew.sh`, o `proxy-entrypoint.sh`
+  (seletor bootstrap/TLS) e a necessidade de `PUBLIC_HOST`. O proxy passa a servir **só HTTP no loopback**
+  (`127.0.0.1:80`) e o TLS é do `tailscaled`. Ganho colateral: **superfície pública zero**, o que protege
+  o login sem segundo fator e sem bloqueio por tentativas (ADR 0004).
+

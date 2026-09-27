@@ -142,32 +142,35 @@ sudo mkdir -p /opt/myplanner
 sudo chown -R deploy:deploy /opt/myplanner
 ```
 
-### 4. `.env`, proxy e certificado HTTPS por IP
+### 4. `.env` e a camada de rede privada (Tailscale)
 
 - Crie `/opt/myplanner/deploy/.env` a partir de `deploy/.env.example` com os segredos (`TRELLO_*`,
-  `SESSION_SECRET`, `APP_PASSWORD_HASH`, `LLM_*`) e **`PUBLIC_HOST`** (o IP público do servidor).
+  `SESSION_SECRET`, `APP_PASSWORD_HASH`, `LLM_*`). Não existem mais variáveis de TLS/host.
 - `COOKIE_SECURE=true` é fixado pelo próprio `deploy/compose.yaml` em produção (S3/S7).
-- **Proxy decidido**: **Nginx** (interface + `/api`) com **Certbot** emitindo o certificado **do IP**
-  pelo perfil `shortlived` (~6 dias), validado por **HTTP-01** e renovado por webroot — **sem downtime**
-  (ver `specs/011-publicacao-em-producao/research.md`; a decisão estava em aberto na spec 002).
-  Alternativa descartada: Caddy, que para **IP** usa certificado autoassinado (o celular mostraria
-  aviso de segurança).
+- **Acesso decidido (ADR 0005)**: **rede privada com Tailscale**. O app é servido em
+  `https://<host>.<tailnet>.ts.net`, com certificado Let's Encrypt gerenciado pelo `tailscaled`.
+  **Nenhuma porta do app é publicada para a internet** — o proxy (Nginx, interface + `/api`) escuta apenas
+  no loopback (`127.0.0.1:80`) e quem fala com ele é o `tailscaled`.
+- **Por que não certificado de IP**: o Let's Encrypt **não emite para IP puro** — o Certbot recusa a
+  emissão. Foi a primeira tentativa desta feature; está documentada no `research.md` (D8) e no ADR.
+- No console do Tailscale (`login.tailscale.com`): habilite **HTTPS Certificates** (em DNS) e desative a
+  **Key expiry** do nó deste servidor (em Máquinas).
 
 ### 5. Deploy por tag (um comando)
 
 ```bash
 cd /opt/myplanner
-deploy/scripts/publish.sh v0.12.0     # publicar
-deploy/scripts/publish.sh v0.11.0     # reverter para a tag anterior (mesmo comando)
+deploy/scripts/publish.sh v0.13.0     # publicar
+deploy/scripts/publish.sh v0.12.0     # reverter para a tag anterior (mesmo comando)
 ```
 
-Primeira publicação no servidor (uma vez): `deploy/scripts/first-publish.sh`.
-Roteiro completo, com verificação, renovação agendada e diagnóstico:
+Primeira publicação no servidor (uma vez): `deploy/scripts/setup-tailscale.sh` e, depois,
+`deploy/scripts/first-publish.sh`. Roteiro completo:
 `specs/011-publicacao-em-producao/quickstart.md`.
 
 ### 6. Rollback
 
-O mesmo `publish.sh`, com a tag anterior. Segredos e volumes (senha, certificado) não são tocados.
+O mesmo `publish.sh`, com a tag anterior. Segredos e o volume do app (hash da senha) não são tocados.
 
 
 ## Avisos de segurança (leitura obrigatória)

@@ -1,48 +1,53 @@
 #!/usr/bin/env bash
 # PRIMEIRA publicação (uma vez por servidor) — ver specs/011-publicacao-em-producao/quickstart.md.
 #
-# Faz quatro coisas, na ordem:
-#   1. sobe o servidor e o proxy em modo bootstrap (só o desafio ACME na porta 80);
-#   2. emite o certificado do IP por HTTP-01/webroot (RFC 8738 permite IP neste desafio);
-#   3. reinicia o proxy: agora ele encontra o certificado e sobe em modo TLS;
-#   4. verifica a saúde do servidor.
-#
-# Depois disso, publicar versões novas é só deploy/scripts/publish.sh <tag>.
+# Com a rede privada (ADR 0005), publicar deixou de ter "dois atos": não há mais certificado para emitir.
+#   1. sobe servidor e proxy (o proxy escuta só no loopback: nada exposto à internet);
+#   2. verifica de dentro da máquina que o app responde;
+#   3. publica o app no tailnet (o Tailscale cuida do HTTPS e do certificado).
 set -euo pipefail
 
-cd "$(dirname "$0")/.."                 # .../deploy
+cd "$(dirname "$0")/.."                       # .../deploy
 if [ ! -f .env ]; then
     echo "erro: crie deploy/.env a partir de deploy/.env.example (os segredos ficam só no servidor)"
     exit 1
 fi
-# shellcheck disable=SC1091
-set -a; . ./.env; set +a
-: "${PUBLIC_HOST:?defina PUBLIC_HOST em deploy/.env (o IP publico do servidor)}"
-PROFILE="${CERTBOT_PROFILE:-shortlived}"
 
-issue() {
-    docker compose run --rm certbot certonly \
-        --webroot -w /var/www/certbot \
-        --preferred-challenges http \
-        -d "${PUBLIC_HOST}" \
-        --non-interactive --agree-tos --register-unsafely-without-email "$@"
-}
-
-echo "1/4 subindo servidor e proxy em modo bootstrap"
-docker compose up -d --build backend proxy
-
-echo "2/4 emitindo o certificado de ${PUBLIC_HOST} (perfil ${PROFILE})"
-if ! issue --preferred-profile "${PROFILE}"; then
-    echo "aviso: perfil ${PROFILE} indisponivel para esta conta; emitindo com o perfil padrao"
-    issue
+if ! command -v tailscale >/dev/null 2>&1; then
+    echo "erro: o Tailscale não está instalado nesta máquina."
+    echo "rode primeiro: deploy/scripts/setup-tailscale.sh"
+    exit 1
 fi
 
-echo "3/4 reiniciando o proxy em modo TLS"
-docker compose restart proxy
-sleep 3
+echo "1/3 subindo servidor e proxy (proxy só no loopback: 127.0.0.1:80)"
+docker compose up -d --build backend proxy
 
-echo "4/4 verificando"
+echo "2/3 verificando de dentro da máquina"
+APP_OK=""
+for _ in $(seq 1 20); do
+    if curl -fsS -o /dev/null http://127.0.0.1/api/health; then
+        APP_OK=1
+        echo "    /api/health respondeu 200"
+        break
+    fi
+    sleep 1
+done
+if [ -z "${APP_OK}" ]; then
+    echo "    aviso: o app ainda não respondeu em http://127.0.0.1/api/health"
+    echo "    veja o que aconteceu: docker compose logs --tail=50 backend proxy"
+fi
+
+echo "3/3 publicando no tailnet (HTTPS e certificado gerenciados pelo Tailscale)"
+tailscale serve --bg --https=443 http://127.0.0.1:80
+
+DNS_NAME="$(tailscale status --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))' 2>/dev/null || true)"
+echo
 docker compose ps
 echo
-echo "pronto: abra https://${PUBLIC_HOST}/ no celular (com o https escrito) e defina a senha"
-echo "no primeiro acesso. Para conferir o certificado: docker compose run --rm certbot certificates"
+if [ -n "${DNS_NAME}" ]; then
+    echo "pronto: abra https://${DNS_NAME}/ no celular (com o app do Tailscale conectado)"
+    echo "e defina a senha no primeiro acesso. O rodapé deve mostrar a versão da tag publicada."
+else
+    echo "pronto: veja o endereço com 'tailscale serve status' e abra no celular"
+fi
+

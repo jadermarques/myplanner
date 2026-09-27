@@ -73,7 +73,7 @@ somente a senha: sem segundo fator (TOTP), sem lista/revogação de aparelhos e 
 sessão de 90 dias renovada a cada uso, em cookie HttpOnly, Secure e SameSite=Strict;
 proteção CSRF e cabeçalhos de segurança (CSP, HSTS).
 Motivo de não usar passkey/WebAuthn: ele não funciona em acesso por IP.
-HTTPS obrigatório, mesmo acessando só por IP: usar certificado Let's Encrypt de IP (perfil shortlived, cerca de 6 dias) com renovação automática. Escolher o proxy (Certbot + Nginx ou Caddy) é item de research.md na spec 002, verificando o suporte real a certificado de IP.
+HTTPS obrigatório na ponta que o navegador vê, com acesso por rede privada (Tailscale, ADR 0005): o app é servido em HTTPS no endereço do nó (`https://<host>.<tailnet>.ts.net`), com certificado Let's Encrypt gerenciado pelo `tailscaled` (renovação automática, sem cron próprio). Nenhuma porta do app é publicada para a internet — só o SSH da administração; o proxy escuta apenas no loopback e quem fala com ele é o `tailscaled`. O certificado público de IP não existe: o Let's Encrypt não emite para IP puro (a primeira versão desta regra falhou na prática — ver research D8 da feature 011 e docs/adr/0005-acesso-por-rede-privada.md). A superfície pública zero é o que protege o login sem segundo fator e sem bloqueio por tentativas (ADR 0004).
 Logs: nunca registrar senha, token, segredo, cookie ou dados pessoais (e-mail, telefone, CPF) em texto plano, nem em desenvolvimento.
 Rede de segurança Git:
 commit (ponto de restauração) antes de qualquer intervenção complexa;

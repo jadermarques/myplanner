@@ -66,7 +66,30 @@ roteiro.
   pode verificar** no servidor (SC-001, SC-002, SC-004, SC-006) — o status honesto é "entregue, com
   verificação em produção pendente do dono", **não** "Converged". Depois: gancho de release (A9).
 
-## Dependencies
+## Revisão depois da publicação real (2026-09-27)
+
+A primeira publicação mostrou que **não existe certificado público para IP puro** (o Certbot recusou; ver
+`research.md` D8 e `docs/adr/0005-acesso-por-rede-privada.md`). O que mudou em relação às tasks acima:
+
+- **T005/T006 (configurações do proxy)**: as duas (TLS e bootstrap) foram substituídas por **uma**,
+  `deploy/nginx/app.conf` — HTTP interno, sem bloco 443, sem desafio ACME e sem redirecionamento.
+- **T007 (seletor de modo do proxy)**: **removido**. Não existe mais "modo bootstrap" nem "modo TLS" —
+  o TLS é do `tailscaled`.
+- **T010 (primeira publicação)**: reescrito — sem emissão de certificado: sobe o pacote, verifica
+  `/api/health` de dentro da máquina e publica no tailnet (`tailscale serve`).
+- **T013/T014 (renovação agendada + cron)**: **removidos**. O certificado é gerenciado pelo Tailscale; não
+  existe `renew.sh` nem cron nosso.
+- **T015 (perfil `shortlived`)**: **removido** — deixou de existir perfil ACME no projeto.
+- **T002/T009 (`.env`)**: saíram `PUBLIC_HOST` e `CERTBOT_PROFILE`; entrou `deploy/.env.example` sem
+  variáveis de TLS.
+- **Novo**: `deploy/scripts/setup-tailscale.sh` (instalar, conectar e publicar no tailnet) e dois passos no
+  roteiro que não existiam (habilitar **HTTPS Certificates** e **desativar Key expiry** do nó).
+- **T018 (validação)**: foi além do previsto — o agente construiu as imagens e subiu o pacote localmente
+  (as duas modalidades do proxy na primeira versão e, agora, o proxy HTTP interno respondendo em
+  `127.0.0.1`), além de `docker compose config` e da suíte completa.
+- **T019 (convergência honesta)**: mantida — o status continua **"entregue, com verificação em produção
+  pendente do dono"**, porque a emissão do certificado e o acesso pelo celular dependem da conta dele.
+
 
 - T003–T009 antes de T010/T011; T012 depende de T010/T011; T013/T014 dependem de T011 (proxy no ar).
 - T016 depende de T011 (existe algo publicado e uma tag anterior).

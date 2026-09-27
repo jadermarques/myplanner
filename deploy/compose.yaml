@@ -1,9 +1,10 @@
-# Pacote de produção — ver o roteiro em specs/011-publicacao-em-producao/quickstart.md
+# Pacote de produção — roteiro em specs/011-publicacao-em-producao/quickstart.md
 #
-# Só 80 e 443 são publicadas:
-#   80  → validar o certificado do IP (desafio HTTP-01, RFC 8738) e redirecionar para HTTPS
-#   443 → o app (interface + /api)
-# O servidor (8000) e os dados de senha NÃO são publicados: ficam só na rede interna.
+# O TLS e o acesso são da camada de rede privada (Tailscale): ver docs/adr/0005-acesso-por-rede-privada.md.
+# Por isso NENHUMA porta vai para a internet:
+#   - o proxy escuta apenas no loopback (127.0.0.1:80) e quem fala com ele é o `tailscaled`;
+#   - o servidor (8000) fica só na rede interna do compose;
+#   - quem publica em HTTPS para os aparelhos do tailnet é o `tailscale serve`.
 # Segredos vêm de ./deploy/.env, que fica no servidor e nunca entra no Git (FR-004).
 name: myplanner
 
@@ -16,7 +17,7 @@ services:
     env_file:
       - ./.env
     environment:
-      # HTTPS é obrigatório em produção: o cookie de sessão é Secure (S3/S7).
+      # A ponta que o navegador vê é HTTPS (S3/S7): o cookie de sessão é Secure.
       COOKIE_SECURE: "true"
       TZ: America/Sao_Paulo
     volumes:
@@ -41,28 +42,11 @@ services:
     depends_on:
       - backend
     environment:
-      # O IP público: é o nome do certificado (Let's Encrypt por endereço IP).
-      PUBLIC_HOST: ${PUBLIC_HOST:?defina PUBLIC_HOST em deploy/.env (o IP publico do servidor)}
       TZ: America/Sao_Paulo
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - letsencrypt:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-
-  # Executado sob demanda pelos scripts (primeira emissão e renovação). Não sobe com o app.
-  certbot:
-    # Pinado: identificador de IP exige um certbot recente (é o suporte que passou a usar
-    # CERTBOT_IDENTIFIER em vez de CERTBOT_DOMAIN). Se a tag não existir na sua data, use
-    # `latest` e anote a versão no roteiro.
-    image: certbot/certbot:v5.8.0
-    profiles: ["tools"]
-    volumes:
-      - letsencrypt:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
+      # Só no loopback: exposição à internet igual a zero. O `tailscale serve` encaminha para cá.
+      - "127.0.0.1:80:80"
 
 volumes:
   app_data:
-  letsencrypt:
-  certbot_www:
+

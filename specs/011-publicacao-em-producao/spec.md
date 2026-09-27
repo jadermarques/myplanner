@@ -26,6 +26,24 @@
 - Q: O app precisa funcionar offline em produção? → A: não; sem internet ele segue apenas avisando que
   precisa de conexão (não objetivo do produto).
 
+### Session 2026-09-27 — revisão depois da primeira publicação real (a premissa mudou)
+
+- **Descoberta**: o Let's Encrypt **não emite certificado para IP puro** para contas comuns — o Certbot
+  recusou a emissão no servidor real (mensagem transcrita no `research.md`, D8). A premissa desta spec e
+  da **A8** estava **errada**; a decisão de TLS foi refeita em `docs/adr/0005-acesso-por-rede-privada.md`.
+- Q: Como resolver o TLS então? → A: **rede privada com Tailscale**: o app é servido em
+  `https://<host>.<tailnet>.ts.net`, com certificado confiável gerenciado pelo `tailscaled`, e **nenhuma
+  porta do app publicada para a internet**.
+- Q: Por que não um subdomínio grátis (DuckDNS) com certificado normal? → A: funciona, mas mantém o login
+  **exposto ao mundo** — e o ADR 0004 escolheu senha única **sem** segundo fator e **sem** bloqueio por
+  tentativas. A rede privada também dispensa abrir portas e dispensa o Certbot.
+- Q: E uma autoridade certificadora própria no celular? → A: descartada: exigiria instalar e confiar numa
+  raiz em **cada** aparelho e guardar uma chave de autoridade — mais atrito e mais risco do que instalar
+  um app.
+- Q: O HTTPS continua obrigatório? → A: sim (S7 mantida no **espírito**): a ponta que o navegador vê é
+  HTTPS com certificado válido; o trecho interno (`tailscaled → proxy`) é HTTP em loopback, nunca sai da
+  máquina.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Abrir o app no celular, de qualquer rede (Priority: P1)
@@ -108,10 +126,11 @@ sem o app por muito tempo.
 
 - **FR-001**: DEVE existir um pacote de produção que sobe o app inteiro (interface + servidor) em
   **um** comando documentado, a partir de uma **tag** versionada.
-- **FR-002**: O acesso DEVE ser por **HTTPS em `https://<IP>`**, com certificado **emitido por
-  autoridade pública e confiável no celular** — sem tela de aviso de segurança.
-- **FR-003**: A renovação do certificado DEVE ser **automática e agendada**, sem ação manual, e DEVE ser
-  possível verificar que ela ocorreu.
+- **FR-002**: O acesso DEVE ser por **HTTPS com certificado público confiável no celular** (sem tela de
+  aviso de segurança), em um **nome** servido pela rede privada (`https://<host>.<tailnet>.ts.net`), com o
+  app **não exposto à internet**.
+- **FR-003**: A renovação do certificado DEVE ser **automática**, gerenciada pela própria camada de rede
+  privada (sem cron nosso e sem ação manual), e DEVE ser possível **verificar o estado** do certificado.
 - **FR-004**: Os segredos DEVEM viver **apenas** no servidor, em arquivo não versionado; **nunca** no
   repositório, na imagem ou em log (S8, A7).
 - **FR-005**: O app DEVE voltar sozinho depois de reinício do servidor (subida automática no boot).
@@ -119,14 +138,18 @@ sem o app por muito tempo.
   (sessão de 90 dias preservada).
 - **FR-007**: DEVE existir caminho de **reversão** para a tag anterior, documentado, executável pelo dono
   em poucos minutos.
-- **FR-008**: Apenas as portas necessárias DEVEM ficar expostas (HTTPS e SSH); a interface e o servidor
-  **não** DEVEM ser publicados diretamente.
+- **FR-008**: **Nenhuma porta do app DEVE ficar exposta à internet** — só o SSH da administração. Quem
+  publica o app é a camada de rede privada; o proxy e o servidor escutam apenas em loopback/rede interna.
 - **FR-009**: O endereço publicado DEVE continuar servindo o PWA instalável, e as atualizações DEVEM
   chegar sem reinstalar o app.
 - **FR-010**: Login (senha única, sem segundo fator — ADR 0004) e criação de cards DEVEM continuar
   funcionando exatamente como hoje.
-- **FR-011**: Dados de configuração de TLS DEVEM ser **persistentes** entre rebuilds e reinícios.
-- **FR-012**: O roteiro DEVE cobrir o que fazer quando o IP do servidor mudar.
+- **FR-011**: O **estado do app** (hash da senha criado no primeiro acesso) DEVE ser persistente entre
+  rebuilds e reinícios. A configuração de TLS deixa de ser responsabilidade nossa — é da camada de rede
+  privada.
+- **FR-012**: O roteiro DEVE cobrir o que fazer quando o **IP do servidor mudar** (o nome da rede privada
+  acompanha o nó, então nada de certificado a refazer) e a **expiração da chave do nó**, que precisa ser
+  desativada no console para o servidor não sair da rede sozinho.
 - **FR-013**: DEVE existir uma verificação local do pacote (validação da configuração e subida dos
   serviços com `GET /health` respondendo) antes de publicar — **limitação conhecida**: nesta máquina o
   daemon do Docker está parado, então a validação de subida depende de o dono ligá-lo (a validação de
@@ -148,18 +171,22 @@ sem o app por muito tempo.
 - **SC-002**: Criar um card no celular pelo endereço HTTPS, de **fora da rede de casa**, mantendo o
   critério do produto (≤ 10 s por card, sem contar digitação).
 - **SC-003**: **0** avisos de segurança no navegador do celular; **0** segredos encontrados por varredura
-  no repositório; **0** portas publicadas além de **80** (apenas para validar o certificado do IP e para
-  redirecionar para HTTPS — *ajuste durante o research: o RFC 8738 permite validar IP por HTTP-01, o que
-  mantém a renovação sem downtime*), **443** e SSH.
+  no repositório; **0 portas do app publicadas para a internet** (só o SSH da administração segue
+  exposto). *Ajuste da revisão: as portas 80 e 443 deixam de ser publicadas — TLS e acesso passam a ser da
+  rede privada (ADR 0005).*
 - **SC-004**: Reiniciar o servidor → app volta sozinho, **0** intervenções.
 - **SC-005**: Reverter para a tag anterior em **≤ 5 minutos**.
-- **SC-006**: O certificado em uso **não expira** ao longo de dois ciclos de renovação consecutivos.
+- **SC-006**: O certificado em uso **não expira** (renovação gerenciada pela rede privada), verificável
+  pelo estado do certificado no console e pelo status do nó — sem cron nosso e sem toque manual.
 - **SC-007**: **0** regressões nas três camadas de teste.
 
 ## Assumptions
 
-- Servidor Ubuntu com Docker e IP público (documentado no `README.md`); publicação **manual por tag**.
-- **Sem domínio próprio** nesta versão: o endereço é `https://<IP>` (A8).
+- Servidor Ubuntu com Docker (documentado no `README.md`); publicação **manual por tag**.
+- **Sem domínio próprio e sem certificado de IP**: o acesso é por **rede privada** (Tailscale), no endereço
+  `https://<host>.<tailnet>.ts.net` (ADR 0005, que revisa a A8).
+- Cada aparelho que acessa o app precisa do app do Tailscale conectado; no console do tailnet, os
+  **certificados HTTPS** ficam habilitados e a **expiração de chave** do nó do servidor, desativada.
 - **Sem banco de dados** e **sem múltiplos usuários** — nada disso entra aqui (não objetivos).
 - O agente entrega artefatos e roteiro; **a execução no servidor é do dono** (A11).
 - Sem nova biblioteca de aplicação; a única adição é infraestrutura de empacotamento.

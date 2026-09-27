@@ -1,129 +1,136 @@
-# Quickstart / Roteiro do dono: publicar o app na VPS
+# Quickstart / Roteiro do dono: publicar o app na VPS (acesso por rede privada)
 
-**Feature**: `011-publicacao-em-producao` | **Date**: 2026-09-27
+**Feature**: `011-publicacao-em-producao` | **Revisão**: 2026-09-27 (ADR 0005 — o certificado de IP
+não existe; ver `research.md`, D8)
 
-> **Quem executa é você.** O agente **não** executa deploy nem altera o servidor (A11). Estes comandos
-> são para rodar **na VPS**, como o usuário `deploy`.
+> **Quem executa é você.** O agente **não** executa deploy nem altera o servidor (A11).
+
+## O que mudou em relação à primeira tentativa
+
+O Let's Encrypt **não emite certificado para IP puro** — o Certbot recusou a emissão no servidor real. A
+solução é **rede privada com Tailscale**: o app fica em `https://<nome-do-nó>.<seu-tailnet>.ts.net`, com
+certificado válido gerenciado pelo próprio Tailscale, e **nenhuma porta do app é publicada para a
+internet**. Se preferir entender o porquê antes de seguir, veja `docs/adr/0005-acesso-por-rede-privada.md`.
 
 ## Pré-requisitos (uma vez)
 
-1. VPS Ubuntu com **Docker Engine + plugin Compose** (passos 1–3 do `README.md`).
-2. Usuário `deploy` (no grupo `docker`) e `/opt/myplanner` (passos 2–3 do `README.md`).
-3. **IP público fixo** e as portas **80 e 443 liberadas** no firewall do provedor.
-   Aviso do `README.md`: **porta publicada no Docker ignora o UFW** — por isso o pacote publica
-   *somente* 80 e 443; o servidor (8000) nunca é exposto.
-4. Repositório no servidor:
+1. VPS com Docker e o usuário `deploy` (passos 1–3 do `README.md`).
+2. Repositório em `/opt/myplanner` na tag desejada (passo 5 do `README.md`).
+3. **Conta no Tailscale** — gratuita, em `login.tailscale.com`.
+4. **App do Tailscale no celular** (Play Store / App Store), entrando na **mesma conta**.
 
-   ```bash
-   git clone git@github.com:jadermarques/myplanner.git /opt/myplanner
-   cd /opt/myplanner
-   git fetch --tags && git checkout v0.12.0
-   ```
+**Não é preciso abrir nenhuma porta** — nem 80, nem 443. Esse é o ganho principal desta mudança.
 
 ## Passo 1 — Segredos (só no servidor)
 
 ```bash
 cd /opt/myplanner/deploy
 cp .env.example .env
-nano .env          # preencha PUBLIC_HOST (o IP), TRELLO_API_KEY, TRELLO_TOKEN, SESSION_SECRET
+python3 -c "import secrets; print('SESSION_SECRET=' + secrets.token_urlsafe(32))"
+nano .env
 ```
 
-`SESSION_SECRET` novo: `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`.
-`APP_PASSWORD_HASH` pode ficar **vazio**: o app cria no primeiro acesso (fica no volume `app_data`).
-`deploy/.env` **nunca** vai para o Git e **nunca** entra na imagem (FR-004).
+Preencha **três** linhas (os valores do Trello são os mesmos que já funcionam no seu app):
 
-## Passo 2 — Primeira publicação (um comando)
+```ini
+TRELLO_API_KEY=<cole o seu>
+TRELLO_TOKEN=<cole o seu>
+SESSION_SECRET=<cole o valor gerado acima>
+APP_PASSWORD_HASH=            ← deixe vazio: o app cria no primeiro acesso
+```
+
+Salve (**Ctrl+O**, **Enter**, **Ctrl+X**) e confira sem imprimir segredo:
+
+```bash
+chmod 600 .env
+grep -q '^TRELLO_TOKEN=..' .env && echo 'TRELLO_TOKEN preenchido'
+grep -q '^SESSION_SECRET=..' .env && echo 'SESSION_SECRET preenchido'
+```
+
+> Se o seu `.env` já existe da tentativa anterior, ele deve ter `PUBLIC_HOST=...` e talvez
+> `CERTBOT_PROFILE=...`: **as duas ficaram órfãs** e podem ser apagadas — não são mais usadas.
+
+## Passo 2 — Tailscale: instalar, conectar e publicar (uma vez)
+
+```bash
+deploy/scripts/setup-tailscale.sh
+```
+
+1. O script instala o Tailscale e pede para **conectar**: ele imprime um **link** — abra no navegador e
+   autorize este servidor no seu tailnet.
+2. No fim ele publica o app e mostra o endereço, algo como
+   `https://locacloudjader26.<seu-tailnet>.ts.net/`.
+3. **Dois ajustes no console** (`login.tailscale.com`), se ainda não fez:
+   - **DNS → HTTPS Certificates: habilitar.** É isto que dá o **certificado válido** (sem isso o navegador
+     mostra aviso de segurança);
+   - **Máquinas → nó deste servidor → desativar "Key expiry"**. Sem isso o servidor sai da rede sozinho
+     depois de alguns meses.
+
+## Passo 3 — Primeira publicação do app
 
 ```bash
 deploy/scripts/first-publish.sh
 ```
 
-O que ele faz, em ordem (é só isso, sem mágica):
-1. sobe `backend` e `proxy` — o proxy detecta que ainda **não há certificado** e sobe em **modo bootstrap**
-   (porta 80 servindo só o desafio do certificado; nada do app em HTTP);
-2. emite o certificado **do IP** pelo Certbot, validando por **HTTP-01** (o RFC 8738 permite identificador
-   de IP nesse desafio) — usa o perfil `shortlived` e, se ele não estiver disponível para a sua conta,
-   **reemite com o perfil padrão**, avisando no terminal;
-3. reinicia o `proxy`: agora ele encontra o certificado e sobe em **modo TLS**;
-4. mostra o estado dos serviços.
+Na ordem, ele: sobe `backend` e `proxy` (o proxy escuta **só** em `127.0.0.1:80`), confirma de dentro da
+máquina que `/api/health` responde **200** e publica o app no tailnet.
 
-## Passo 3 — Conferir no celular
+Conferência, no próprio servidor:
 
-1. No navegador do celular, digite **`https://<SEU-IP>`** (com o `https://` escrito — é o que evita o
-   caminho HTTP) e confirme que **não aparece aviso de segurança** (SC-003).
-2. Defina a senha no primeiro acesso e entre.
-3. **Instale como app** (tela inicial). O ícone abre em tela cheia e continua falando com o servidor.
+```bash
+docker compose ps
+curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1/api/health   # espera 200
+tailscale serve status                                                    # mostra o endereço HTTPS
+```
+
+## Passo 4 — No celular
+
+1. Instale o **app do Tailscale** e conecte com a mesma conta (deixe ligado).
+2. Abra o endereço mostrado — **sem tela de aviso de segurança**.
+3. Defina a senha no primeiro acesso e **instale como app** na tela inicial.
 4. Crie um card e confira no Trello.
 
-Verificações de linha de comando, se quiser confirmar antes:
+## Publicar versões novas / reverter
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' https://<SEU-IP>/api/health   # espera 200
-curl -sSI https://<SEU-IP>/ | head -1                                   # espera HTTP/2 200
-docker compose run --rm certbot certificates                            # validade do certificado
+cd /opt/myplanner
+deploy/scripts/publish.sh v0.13.0     # publicar uma versão
+deploy/scripts/publish.sh v0.12.0     # reverter para a tag anterior (mesmo comando)
 ```
 
-## Passo 4 — Renovação automática (o certificado é de poucos dias)
-
-```bash
-crontab -e
-```
-
-```cron
-17 3,15 * * *  /opt/myplanner/deploy/scripts/renew.sh
-```
-
-Como **conferir** que está renovando (SC-006):
-
-```bash
-tail -n 40 /opt/myplanner/deploy/renew.log       # cada ciclo registra data + validade atual
-docker compose run --rm certbot certificates     # "Expiry Date" sempre à frente
-```
-
-A renovação é por **webroot**, com o proxy no ar: **sem downtime** e **sem deslogar** (a sessão de 90 dias
-não depende do certificado).
-
-## Publicar uma versão nova
-
-```bash
-cd /opt/myplanner && deploy/scripts/publish.sh v0.13.0
-```
-
-Segredos e volumes não são tocados; a sessão continua válida; o rodapé do app passa a mostrar a versão
-nova (FR-006, FR-009).
-
-## Reverter para a versão anterior (SC-005)
-
-```bash
-cd /opt/myplanner && deploy/scripts/publish.sh v0.12.0     # a tag anterior
-```
-
-## Quando o IP do servidor mudar
-
-O certificado é do **endereço** antigo — ele deixa de valer. Refazer:
-
-```bash
-nano deploy/.env                     # atualize PUBLIC_HOST
-deploy/scripts/first-publish.sh      # emite o certificado do IP novo
-```
+Segredos e o volume do app (hash da senha) não são tocados; a sessão de 90 dias continua válida.
 
 ## Diagnóstico
 
 ```bash
-docker compose ps                        # algo reiniciando? veja o healthcheck
-docker compose logs -f proxy backend     # o proxy diz em qual modo subiu
-docker compose run --rm certbot certificates
+cd /opt/myplanner/deploy
+docker compose ps
+docker compose logs --tail=60 proxy backend
+tailscale status
+tailscale serve status
 ```
+
+| Sintoma | Causa provável |
+|---|---|
+| `https://...ts.net` não abre no celular | app do Tailscale desconectado, ou o aparelho não está no tailnet |
+| Abre, mas com aviso de segurança | **HTTPS Certificates** não habilitado no console do Tailscale |
+| O servidor desaparece da rede depois de meses | **Key expiry** não foi desativada no nó |
+| Página abre mas o app não carrega os dados (erro genérico) | `docker compose logs backend` e `curl http://127.0.0.1/api/health` |
+
+## Quando o IP do servidor mudar
+
+**Nada a fazer no certificado**: o nome é do **nó** na rede privada, não do endereço. O Tailscale
+reconecta sozinho.
 
 ## Nunca fazer
 
-- `docker compose down -v` — apaga os volumes, incluindo o **hash da senha** e o **certificado**.
-- Publicar a porta **8000** ou qualquer outra além de 80/443.
+- `docker compose down -v` — apaga os volumes, incluindo o **hash da senha** (você teria de definir outra).
+- Publicar porta do app (`-p 80:80` / `-p 443:443`) — ficar invisível na internet é o objetivo.
 - Commitar `deploy/.env` ou colar segredos em issue/chat/log.
 
 ## Limitação desta entrega (honestidade de escopo)
 
-O agente validou o que dava **nesta máquina**: sintaxe/referências da configuração do compose e a suíte
-completa de testes (0 regressões). O daemon do Docker está **parado** aqui e o agente **não** executa
-deploy (A11), então a verificação de ponta a ponta — SC-001, SC-002, SC-004 e SC-006 — é feita por você,
-com os passos acima. Só depois desses passos é justo dizer "Converged".
+O agente validou o que dava **na máquina de desenvolvimento**: as duas imagens construídas, o app subindo e
+respondendo em `127.0.0.1`, o proxy em modo HTTP interno e a suíte completa de testes verde (0 regressões).
+O agente **não** executa deploy (A11), e a parte do Tailscale depende da sua conta — então a verificação de
+ponta a ponta (SC-001, SC-002, SC-004, SC-006) é feita por você, com os passos acima.

@@ -71,7 +71,24 @@ specs/011-publicacao-em-producao/
 *(sem `contracts/` e sem `data-model.md`: esta feature não altera contrato HTTP nem o modelo de dados — o
 único contrato novo é o do **roteiro**, que vive no `quickstart.md` e no `README.md`)*
 
-## Complexity Tracking
+## Revisão pós-publicação real (2026-09-27) — supersede a Summary e o mapa de arquivos acima
+
+A primeira publicação real mostrou que **não existe certificado público para IP puro** (o Certbot recusou a
+emissão; ver `research.md`, D8, e `docs/adr/0005-acesso-por-rede-privada.md`). Onde este plano fala em
+"certificado Let's Encrypt do IP", "Certbot", "bootstrap/TLS", "renovação agendada" e "publicação só na
+443", vale o seguinte:
+
+- o TLS e o acesso passam a ser da **camada de rede privada (Tailscale)**: o `tailscale serve` publica em
+  HTTPS para os aparelhos do tailnet e gerencia o certificado — sem Certbot, sem cron e sem volume;
+- o `deploy/` de hoje é: `compose.yaml` (proxy só no loopback + servidor), `nginx/app.conf` (HTTP interno),
+  `.env.example` e `scripts/{setup-tailscale,first-publish,publish}.sh`;
+- **nenhuma porta do app vai para a internet** (só o SSH da administração);
+- a estratégia de verificação (research D5) permanece — `docker compose config`, a suíte completa para
+  provar não-regressão e os passos verificáveis do roteiro — com uma diferença registrada: a verificação de
+  **subida** deixou de ser só sintática, porque o agente construiu as imagens e subiu o pacote localmente
+  (modo bootstrap, modo TLS e agora o proxy HTTP interno respondendo em `127.0.0.1`);
+- o texto anterior fica como **registro histórico** da primeira tentativa, na mesma lógica dos ADRs.
+
 
 | Desvio | Por que | Alternativa simples descartada |
 |--------|---------|-------------------------------|

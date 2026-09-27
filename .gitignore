@@ -1,8 +1,6 @@
 # ===== Segredos — nunca versionar =====
 .env
 deploy/.env
-# Log de renovação do certificado no servidor (gerado em produção)
-deploy/renew.log
 *.pem
 credentials*
 *.key

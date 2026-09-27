@@ -19,13 +19,24 @@
 
 ## Por que não passkey/WebAuthn
 
-- Não funciona em acesso por IP.
+- Não funcionava em acesso por IP *(nota de 2026-09-27: com o acesso por rede privada em `*.ts.net`, esse
+  motivo específico deixa de valer — reabrir passkey seria assunto de um ADR novo; o **ADR 0004 continua
+  valendo** e a decisão de senha única não muda por causa disto)*.
 
 ## HTTPS
 
-- Obrigatório, mesmo por IP: certificado Let's Encrypt de IP (perfil shortlived, ~6 dias)
-  com renovação automática. Escolha do proxy (Certbot + Nginx ou Caddy) é item de
-  `research.md` na spec 002.
+- Obrigatório na ponta que o navegador vê, com certificado público válido.
+- **Descoberta registrada**: o Let's Encrypt **não emite certificado para IP puro** — o Certbot recusa a
+  emissão ("will not issue certificates for a bare IP address"). Ver o research D8 da feature 011 e o
+  `docs/adr/0005-acesso-por-rede-privada.md`.
+- **Solução adotada**: **rede privada (Tailscale)**. O app é servido em
+  `https://<host>.<tailnet>.ts.net`, com certificado gerenciado pelo `tailscaled` (renovação automática,
+  sem cron nosso e sem Certbot).
+- **Nenhuma porta do app é publicada para a internet** (só o SSH da administração): o proxy escuta apenas
+  no loopback (`127.0.0.1:80`) e quem fala com ele é o `tailscaled`. O trecho interno é HTTP em loopback e
+  não sai da máquina.
+- Efeito de segurança relevante: como o login **não fica exposto à internet**, a ausência de segundo fator
+  e de bloqueio por tentativas (ADR 0004) deixa de ser um alvo alcançável de força bruta.
 
 ## Segredos
 
