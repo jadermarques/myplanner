@@ -105,7 +105,7 @@ export async function createCard(
   boardId: string,
   priority?: string,
   description?: string,
-  label?: string,
+  labels?: string[],
   listId?: string,
 ): Promise<{ card_id: string }> {
   const res = await fetch(`${BASE_URL}/cards`, {
@@ -116,7 +116,7 @@ export async function createCard(
       board_id: boardId,
       priority: priority ?? null,
       description: description ?? null,
-      label: label ?? null,
+      labels: labels?.length ? labels : null,
       list_id: listId ?? null,
     }),
   })

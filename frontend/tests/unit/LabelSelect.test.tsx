@@ -7,28 +7,51 @@ const labels = [
   { name: 'Trabalho', color: 'orange_dark' },
 ]
 
+const noop = () => {}
+
 describe('LabelSelect', () => {
-  it('offers every board label plus the "no label" option', () => {
-    render(<LabelSelect labels={labels} value="" onChange={() => {}} />)
-    const values = screen.getAllByRole('radio').map((input) => (input as HTMLInputElement).value)
-    expect(values).toEqual(['', 'Casa', 'Trabalho'])
+  it('offers every board label as a checkbox (FR-002)', () => {
+    render(<LabelSelect labels={labels} value={[]} onToggle={noop} onClear={noop} />)
+    const names = screen.getAllByRole('checkbox').map((input) => (input as HTMLInputElement).value)
+    expect(names).toEqual(['Casa', 'Trabalho'])
   })
 
-  it('selects a label with a single click', () => {
-    const onChange = vi.fn()
-    render(<LabelSelect labels={labels} value="" onChange={onChange} />)
-    fireEvent.click(screen.getByLabelText('Casa'))
-    expect(onChange).toHaveBeenCalledWith('Casa')
+  it('turns one label on without touching the others (FR-001)', () => {
+    const onToggle = vi.fn()
+    render(
+      <LabelSelect labels={labels} value={['Trabalho']} onToggle={onToggle} onClear={noop} />,
+    )
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Casa' }))
+    expect(onToggle).toHaveBeenCalledWith('Casa')
   })
 
-  it('marks the current label and keeps "Sem etiqueta" available', () => {
-    render(<LabelSelect labels={labels} value="Trabalho" onChange={() => {}} />)
-    expect(screen.getByRole('radio', { name: 'Trabalho' })).toBeChecked()
-    expect(screen.getByRole('radio', { name: 'Sem etiqueta' })).not.toBeChecked()
+  it('marks every chosen label at the same time (FR-005)', () => {
+    render(<LabelSelect labels={labels} value={['Casa', 'Trabalho']} onToggle={noop} onClear={noop} />)
+    expect(screen.getByRole('checkbox', { name: 'Casa' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Trabalho' })).toBeChecked()
   })
 
-  it('shows one colour dot per label, and none for "Sem etiqueta"', () => {
-    const { container } = render(<LabelSelect labels={labels} value="" onChange={() => {}} />)
+  it('has no "Sem etiqueta" option anymore', () => {
+    render(<LabelSelect labels={labels} value={[]} onToggle={noop} onClear={noop} />)
+    expect(screen.queryByText('Sem etiqueta')).not.toBeInTheDocument()
+  })
+
+  it('offers "limpar" only when at least one label is chosen (FR-003)', () => {
+    const onClear = vi.fn()
+    const { rerender } = render(
+      <LabelSelect labels={labels} value={[]} onToggle={noop} onClear={onClear} />,
+    )
+    expect(screen.queryByRole('button', { name: 'limpar' })).not.toBeInTheDocument()
+
+    rerender(<LabelSelect labels={labels} value={['Casa']} onToggle={noop} onClear={onClear} />)
+    fireEvent.click(screen.getByRole('button', { name: 'limpar' }))
+    expect(onClear).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows one colour dot per label', () => {
+    const { container } = render(
+      <LabelSelect labels={labels} value={[]} onToggle={noop} onClear={noop} />,
+    )
     expect(container.querySelectorAll('.chip__dot')).toHaveLength(2)
   })
 

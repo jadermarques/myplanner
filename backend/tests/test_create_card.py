@@ -7,15 +7,26 @@ from app.application.create_card import create_card
 
 
 class RecordingClient:
+    KNOWN_LABELS = {"Alta": "label-1", "Casa": "label-2", "Trabalho": "label-3"}
+
     def __init__(self) -> None:
         self.create_card_calls: list[tuple] = []
         self.board_lists: list[dict[str, str]] = []
+        self.label_reads = 0
+        self.label_names_asked: list[list[str]] = []
 
     async def get_first_list_id(self, board_id: str) -> str:
         return "list-1"
 
-    async def find_label_id_by_name(self, board_id: str, name: str) -> str | None:
-        return {"Alta": "label-1", "Casa": "label-2"}.get(name)
+    async def find_label_ids_by_names(self, board_id: str, names: list[str]) -> list[str]:
+        self.label_reads += 1
+        self.label_names_asked.append([*names])
+        ids: list[str] = []
+        for name in names:
+            label_id = self.KNOWN_LABELS.get(name)
+            if label_id and label_id not in ids:
+                ids.append(label_id)
+        return ids
 
     async def list_lists(self, board_id: str) -> list[dict[str, str]]:
         return self.board_lists
@@ -68,37 +79,68 @@ def test_create_card_rejects_empty_title() -> None:
         asyncio.run(create_card(client, "   ", "b1", None, None))
 
 
-def test_create_card_applies_the_label() -> None:
-    """FR-006/FR-009: the chosen label rides along with the card."""
+def test_create_card_applies_the_chosen_label() -> None:
+    """FR-005: the chosen label rides along with the card."""
     client = RecordingClient()
-    asyncio.run(create_card(client, "Comprar leite", "b1", None, None, "Casa"))
+    asyncio.run(create_card(client, "Comprar leite", "b1", None, None, ["Casa"]))
     assert client.create_card_calls == [("Comprar leite", "list-1", ["label-2"], None)]
 
 
-def test_create_card_applies_priority_and_label_together() -> None:
+def test_create_card_applies_every_chosen_label() -> None:
+    """FR-002/FR-005/SC-002: two labels chosen, two labels applied, in the chosen order."""
     client = RecordingClient()
-    asyncio.run(create_card(client, "Comprar leite", "b1", "Alta", None, "Casa"))
-    assert client.create_card_calls == [("Comprar leite", "list-1", ["label-1", "label-2"], None)]
+    asyncio.run(create_card(client, "Comprar leite", "b1", None, None, ["Casa", "Trabalho"]))
+    assert client.create_card_calls == [("Comprar leite", "list-1", ["label-2", "label-3"], None)]
 
 
-def test_create_card_without_label_sends_exactly_todays_payload() -> None:
-    """SC-002: without a label, nothing changes in what the client receives."""
+def test_create_card_applies_priority_and_several_labels_together() -> None:
+    client = RecordingClient()
+    asyncio.run(create_card(client, "Comprar leite", "b1", "Alta", None, ["Casa", "Trabalho"]))
+    assert client.create_card_calls == [
+        ("Comprar leite", "list-1", ["label-1", "label-2", "label-3"], None)
+    ]
+
+
+def test_create_card_reads_the_board_labels_only_once() -> None:
+    """FR-002/SC-001: resolving N labels costs a single read of the board (P2)."""
+    client = RecordingClient()
+    asyncio.run(create_card(client, "Comprar leite", "b1", "Alta", None, ["Casa", "Trabalho"]))
+    assert client.label_reads == 1
+    assert client.label_names_asked == [["Alta", "Casa", "Trabalho"]]
+
+
+def test_create_card_keeps_the_valid_labels_when_one_is_gone() -> None:
+    """R7 (amended by 010)/SC-003: a missing label is skipped one by one."""
+    client = RecordingClient()
+    card_id = asyncio.run(create_card(client, "Comprar leite", "b1", None, None, ["Casa", "Sumiu"]))
+    assert card_id == "card-1"
+    assert client.create_card_calls == [("Comprar leite", "list-1", ["label-2"], None)]
+
+
+def test_create_card_without_labels_sends_exactly_todays_payload() -> None:
+    """SC-004: without labels, nothing changes in what the client receives."""
     client = RecordingClient()
     asyncio.run(create_card(client, "Comprar leite", "b1", None, None, None))
     assert client.create_card_calls == [("Comprar leite", "list-1", None, None)]
 
 
-def test_create_card_ignores_a_label_that_no_longer_exists() -> None:
-    """R7: a label missing from the board must not fail nor block the card."""
+def test_create_card_with_an_empty_label_list_sends_no_labels() -> None:
     client = RecordingClient()
-    card_id = asyncio.run(create_card(client, "Comprar leite", "b1", None, None, "Sumiu"))
+    asyncio.run(create_card(client, "Comprar leite", "b1", None, None, []))
+    assert client.create_card_calls == [("Comprar leite", "list-1", None, None)]
+
+
+def test_create_card_ignores_labels_that_no_longer_exist() -> None:
+    """R7: labels missing from the board must not fail nor block the card."""
+    client = RecordingClient()
+    card_id = asyncio.run(create_card(client, "Comprar leite", "b1", None, None, ["Sumiu"]))
     assert card_id == "card-1"
     assert client.create_card_calls == [("Comprar leite", "list-1", None, None)]
 
 
-def test_create_card_normalizes_a_blank_label() -> None:
+def test_create_card_normalizes_blank_labels() -> None:
     client = RecordingClient()
-    asyncio.run(create_card(client, "Comprar leite", "b1", None, None, "   "))
+    asyncio.run(create_card(client, "Comprar leite", "b1", None, None, ["   "]))
     assert client.create_card_calls == [("Comprar leite", "list-1", None, None)]
 
 

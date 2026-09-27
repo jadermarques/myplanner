@@ -44,12 +44,31 @@ class TrelloClient:
             raise ValueError("board has no open lists")
         return lists[0]["id"]
 
+    async def find_label_ids_by_names(self, board_id: str, names: list[str]) -> list[str]:
+        """Resolve several label names with a SINGLE read of the board (FR-002/FR-005).
+
+        Missing names are skipped one by one (R7, amended by 010) and a repeated name never
+        produces two ids (FR-007); the order asked is preserved.
+        """
+        if not names:
+            return []
+        resp = await self._request(
+            "GET", f"/boards/{board_id}/labels", params={**self._auth, "fields": "id,name"}
+        )
+        by_name = {
+            label.get("name"): label["id"] for label in resp.json() if label.get("name")
+        }
+        ids: list[str] = []
+        for name in names:
+            label_id = by_name.get(name)
+            if label_id and label_id not in ids:
+                ids.append(label_id)
+        return ids
+
     async def find_label_id_by_name(self, board_id: str, name: str) -> str | None:
-        resp = await self._request("GET", f"/boards/{board_id}/labels", params={**self._auth, "fields": "id,name"})
-        for label in resp.json():
-            if label.get("name") == name:
-                return label["id"]
-        return None
+        """Single-name convenience over the batch read (kept for compatibility)."""
+        ids = await self.find_label_ids_by_names(board_id, [name])
+        return ids[0] if ids else None
 
     async def list_labels(self, board_id: str) -> list[dict[str, str]]:
         """Named labels of the board, with their Trello colour.

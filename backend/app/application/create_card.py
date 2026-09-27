@@ -1,4 +1,4 @@
-"""Use case: create a Trello card from title + board + optional priority, description and label."""
+"""Use case: create a Trello card from title + board + optional priority, description, labels, list."""
 from app.config import settings
 from app.domain.card import Card
 from app.infrastructure.trello_client import TrelloClient
@@ -10,7 +10,7 @@ async def create_card(
     board_id: str,
     priority: str | None = None,
     description: str | None = None,
-    label: str | None = None,
+    labels: list[str] | None = None,
     list_id: str | None = None,
 ) -> str:
     card = Card(
@@ -18,7 +18,7 @@ async def create_card(
         board_id=board_id,
         priority=priority,
         description=description,
-        label=label,
+        labels=tuple(labels) if labels else (),
         list_id=list_id,
     )
     if card.priority and card.priority not in settings.trello.priority_labels:
@@ -34,22 +34,11 @@ async def create_card(
             target = None
     resolved_list_id = target or await client.get_first_list_id(card.board_id)
 
-    label_ids: list[str] = []
-    # R7: a label missing from the board is silently skipped — the card is never blocked by it.
-    for name in (card.priority, card.label):
-        if not name:
-            continue
-        label_id = await client.find_label_id_by_name(card.board_id, name)
-        if label_id and label_id not in label_ids:
-            label_ids.append(label_id)
+    # R7 (amended by 010): the board is the authority on which labels exist. Every name — the
+    # priority label included — is resolved in a SINGLE read of the board; a name the board no
+    # longer has is skipped one by one (the remaining ones still apply) and a repeated name never
+    # becomes two labels.
+    asked = [name for name in (card.priority, *card.labels) if name]
+    label_ids = await client.find_label_ids_by_names(card.board_id, asked) if asked else []
 
     return await client.create_card(card.title, resolved_list_id, label_ids or None, card.description)
-    # R7: a label missing from the board is silently skipped — the card is never blocked by it.
-    for name in (card.priority, card.label):
-        if not name:
-            continue
-        label_id = await client.find_label_id_by_name(card.board_id, name)
-        if label_id and label_id not in label_ids:
-            label_ids.append(label_id)
-
-    return await client.create_card(card.title, list_id, label_ids or None, card.description)

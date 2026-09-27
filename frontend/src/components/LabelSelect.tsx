@@ -26,41 +26,46 @@ export function labelColor(color: string): string {
 
 interface LabelSelectProps {
   labels: Label[]
-  value: string
-  onChange: (label: string) => void
+  value: string[]
+  onToggle: (label: string) => void
+  onClear: () => void
 }
 
 /**
- * Escolha direta, igual à prioridade: todas as etiquetas do board visíveis e **1 toque**;
- * "Sem etiqueta" é o estado inicial e sempre existe.
+ * Escolha múltipla: cada etiqueta do board é uma caixa de seleção — 1 toque liga, outro desliga,
+ * e uma nunca mexe nas outras (FR-001). "limpar" aparece só quando há algo marcado, para desmarcar
+ * tudo de uma vez (FR-003); nenhuma marcada significa "sem etiqueta" (FR-004).
  */
-export default function LabelSelect({ labels, value, onChange }: LabelSelectProps) {
-  const options = [{ name: '', color: '' }, ...labels]
-
+export default function LabelSelect({ labels, value, onToggle, onClear }: LabelSelectProps) {
   return (
-    <div className="chips" role="radiogroup" aria-label="Etiqueta">
-      {options.map((option) => (
-        <label
-          key={option.name || 'sem-etiqueta'}
-          className={value === option.name ? 'chip chip--on' : 'chip'}
-        >
-          <input
-            type="radio"
-            name="label"
-            value={option.name}
-            checked={value === option.name}
-            onChange={() => onChange(option.name)}
-          />
-          {option.color ? (
-            <span
-              className="chip__dot"
-              style={{ background: labelColor(option.color) }}
-              aria-hidden="true"
+    <div className="chips" role="group" aria-label="Etiqueta">
+      {labels.map((option) => {
+        const chosen = value.includes(option.name)
+        return (
+          <label key={option.name} className={chosen ? 'chip chip--on' : 'chip'}>
+            <input
+              type="checkbox"
+              name="label"
+              value={option.name}
+              checked={chosen}
+              onChange={() => onToggle(option.name)}
             />
-          ) : null}
-          {option.name || 'Sem etiqueta'}
-        </label>
-      ))}
+            {option.color ? (
+              <span
+                className="chip__dot"
+                style={{ background: labelColor(option.color) }}
+                aria-hidden="true"
+              />
+            ) : null}
+            {option.name}
+          </label>
+        )
+      })}
+      {value.length > 0 && (
+        <button type="button" className="chip chip--ghost" onClick={onClear}>
+          limpar
+        </button>
+      )}
     </div>
   )
 }

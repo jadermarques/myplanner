@@ -22,8 +22,9 @@ function renderForm(overrides: Partial<React.ComponentProps<typeof CardForm>> = 
       boardsLoading={false}
       boardsError={null}
       labels={labels}
-      selectedLabel=""
-      onSelectLabel={() => {}}
+      selectedLabels={[]}
+      onToggleLabel={() => {}}
+      onClearLabels={() => {}}
       lists={[]}
       selectedListId=""
       onSelectList={() => {}}
@@ -160,9 +161,9 @@ describe('CardForm', () => {
     expect(screen.getByLabelText('Título')).toHaveFocus()
   })
 
-  it('sends the chosen label together with the card (FR-006)', async () => {
+  it('sends every chosen label together with the card (FR-005)', async () => {
     mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
-    renderForm({ selectedLabel: 'Casa' })
+    renderForm({ selectedLabels: ['Casa', 'Trabalho'] })
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
 
@@ -172,13 +173,13 @@ describe('CardForm', () => {
         'b1',
         undefined,
         undefined,
-        'Casa',
+        ['Casa', 'Trabalho'],
         undefined,
       ),
     )
   })
 
-  it('sends no label when none is chosen (SC-002)', async () => {
+  it('sends no label when none is chosen (SC-004)', async () => {
     mockedCreateCard.mockResolvedValue({ card_id: 'card-1' })
     renderForm()
     fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Comprar leite' } })
@@ -196,22 +197,31 @@ describe('CardForm', () => {
     )
   })
 
-  it('shows the label choices of the board, and lets the user pick one (FR-003)', () => {
-    const onSelectLabel = vi.fn()
+  it('lets the user turn a label on and off without touching the others (FR-001)', () => {
+    const onToggleLabel = vi.fn()
     renderForm({
       labels: [
         { name: 'Casa', color: 'green' },
         { name: 'Trabalho', color: 'blue' },
       ],
-      onSelectLabel,
+      selectedLabels: ['Casa'],
+      onToggleLabel,
     })
-    fireEvent.click(screen.getByLabelText('Trabalho'))
-    expect(onSelectLabel).toHaveBeenCalledWith('Trabalho')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Trabalho' }))
+    expect(onToggleLabel).toHaveBeenCalledWith('Trabalho')
+    expect(screen.getByRole('checkbox', { name: 'Casa' })).toBeChecked()
   })
 
-  it('does not show the label item when the board has no labels (FR-008)', () => {
+  it('offers "limpar" when labels are chosen (FR-003)', () => {
+    const onClearLabels = vi.fn()
+    renderForm({ selectedLabels: ['Casa'], onClearLabels })
+    fireEvent.click(screen.getByRole('button', { name: 'limpar' }))
+    expect(onClearLabels).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not show the label item when the board has no labels (FR-010)', () => {
     renderForm({ labels: [] })
-    expect(screen.queryByRole('radiogroup', { name: 'Etiqueta' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Etiqueta' })).not.toBeInTheDocument()
     expect(screen.getByRole('radiogroup', { name: 'Prioridade' })).toBeInTheDocument()
   })
 

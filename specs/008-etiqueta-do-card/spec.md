@@ -8,6 +8,11 @@
 
 **Input**: User description: "pode incluir o item de etiqueta igual prioridade, com as etiquetas existentes?"
 
+> **Superada parcialmente pela 010** (`specs/010-multiplas-etiquetas`): a escolha de etiqueta deixou de ser
+> **única** e passou a ser **múltipla** (o campo do contrato é `labels`, uma lista; o antigo `label` segue
+> aceito como alias de transição). A **FR-003** desta spec (escolha única / "Sem etiqueta") está superada.
+> As demais regras seguem valendo na forma emendada da **R7** em `docs/RULES.md`.
+
 ## Clarifications
 
 ### Session 2026-09-27 — decidido pelo agente (dono pediu autonomia: "faça tudo sozinho, não me pergunte nada")

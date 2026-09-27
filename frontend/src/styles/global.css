@@ -383,6 +383,21 @@ select.input {
   font-weight: 650;
 }
 
+/* "limpar": mesmo alvo de toque dos chips, visualmente mais discreto que uma escolha (FR-003) */
+.chip--ghost {
+  min-height: var(--tap);
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.chip--ghost:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .counter-row {
   display: flex;
   justify-content: flex-end;

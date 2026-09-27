@@ -8,12 +8,15 @@ from app.main import app
 
 
 class FakeTrelloClient:
+    LABELS = {"Alta": "label-1", "Casa": "label-2", "Trabalho": "label-3"}
+
     def __init__(self) -> None:
         self.last_description: str | None = None
         self.last_label_ids: list[str] | None = None
         self.last_list_id: str | None = None
         self.listed_labels_for: list[str] = []
         self.listed_lists_for: list[str] = []
+        self.label_reads = 0
         self.fail_labels = False
         self.fail_lists = False
 
@@ -23,8 +26,14 @@ class FakeTrelloClient:
     async def get_first_list_id(self, board_id: str) -> str:
         return "list-1"
 
-    async def find_label_id_by_name(self, board_id: str, name: str) -> str | None:
-        return {"Alta": "label-1", "Casa": "label-2"}.get(name)
+    async def find_label_ids_by_names(self, board_id: str, names: list[str]) -> list[str]:
+        self.label_reads += 1
+        ids: list[str] = []
+        for name in names:
+            label_id = self.LABELS.get(name)
+            if label_id and label_id not in ids:
+                ids.append(label_id)
+        return ids
 
     async def list_labels(self, board_id: str) -> list[dict[str, str]]:
         self.listed_labels_for.append(board_id)
@@ -179,16 +188,54 @@ def test_list_board_labels_maps_a_trello_failure_to_502() -> None:
     assert resp.status_code == 502
 
 
-def test_create_card_forwards_the_label() -> None:
-    """FR-006: the chosen label reaches the card as a label id (R7)."""
+def test_create_card_forwards_every_chosen_label() -> None:
+    """FR-005/R7: all the chosen labels reach the card as label ids."""
+    client, fake = _client_with_fake()
+    resp = client.post(
+        "/cards", json={"title": "T", "board_id": "b1", "labels": ["Casa", "Trabalho"]}
+    )
+    assert resp.status_code == 201
+    assert fake.last_label_ids == ["label-2", "label-3"]
+    assert fake.label_reads == 1
+
+
+def test_create_card_accepts_the_legacy_label_field() -> None:
+    """FR-012: a cached PWA still sends the old `label`; it keeps working."""
     client, fake = _client_with_fake()
     resp = client.post("/cards", json={"title": "T", "board_id": "b1", "label": "Casa"})
     assert resp.status_code == 201
     assert fake.last_label_ids == ["label-2"]
 
 
-def test_create_card_without_label_keeps_the_current_payload() -> None:
-    """SC-002: no label means exactly what happened before this feature."""
+def test_create_card_combines_the_legacy_field_with_the_list() -> None:
+    client, fake = _client_with_fake()
+    resp = client.post(
+        "/cards",
+        json={"title": "T", "board_id": "b1", "labels": ["Trabalho"], "label": "Casa"},
+    )
+    assert resp.status_code == 201
+    assert fake.last_label_ids == ["label-3", "label-2"]
+
+
+def test_create_card_keeps_the_valid_labels_when_one_is_gone() -> None:
+    """R7 (amended by 010)/SC-003: a missing label is skipped one by one."""
+    client, fake = _client_with_fake()
+    resp = client.post(
+        "/cards", json={"title": "T", "board_id": "b1", "labels": ["Casa", "Sumiu"]}
+    )
+    assert resp.status_code == 201
+    assert fake.last_label_ids == ["label-2"]
+
+
+def test_create_card_with_an_empty_label_list_keeps_the_current_payload() -> None:
+    client, fake = _client_with_fake()
+    resp = client.post("/cards", json={"title": "T", "board_id": "b1", "labels": []})
+    assert resp.status_code == 201
+    assert fake.last_label_ids is None
+
+
+def test_create_card_without_labels_keeps_the_current_payload() -> None:
+    """SC-004: no labels means exactly what happened before this feature."""
     client, fake = _client_with_fake()
     resp = client.post("/cards", json={"title": "T", "board_id": "b1"})
     assert resp.status_code == 201

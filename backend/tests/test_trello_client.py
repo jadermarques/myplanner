@@ -56,6 +56,54 @@ def test_find_label_id_by_name() -> None:
     assert missing is None
 
 
+def test_find_label_ids_by_names_reads_the_board_once() -> None:
+    """FR-002/SC-001: N names cost a single read of the board."""
+    paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        paths.append(request.url.path)
+        return httpx.Response(
+            200,
+            json=[{"id": "label-1", "name": "Alta"}, {"id": "label-2", "name": "Casa"}],
+        )
+
+    client = _make_client(handler)
+    try:
+        ids = _run(client.find_label_ids_by_names("b1", ["Alta", "Casa"]))
+    finally:
+        _run(client.aclose())
+    assert ids == ["label-1", "label-2"]
+    assert paths == ["/1/boards/b1/labels"]
+
+
+def test_find_label_ids_by_names_skips_names_the_board_does_not_have() -> None:
+    """R7 (amended by 010): missing names are skipped; repeats never duplicate an id."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=[{"id": "label-2", "name": "Casa"}])
+
+    client = _make_client(handler)
+    try:
+        ids = _run(client.find_label_ids_by_names("b1", ["Casa", "Sumiu", "Casa", ""]))
+    finally:
+        _run(client.aclose())
+    assert ids == ["label-2"]
+
+
+def test_find_label_ids_by_names_without_names_never_calls_trello() -> None:
+    """P2: nothing to resolve means no request at all."""
+
+    def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover
+        raise AssertionError("Trello must not be called when there is nothing to resolve")
+
+    client = _make_client(handler)
+    try:
+        ids = _run(client.find_label_ids_by_names("b1", []))
+    finally:
+        _run(client.aclose())
+    assert ids == []
+
+
 def test_create_card_with_label() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/1/cards"

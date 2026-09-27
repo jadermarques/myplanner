@@ -24,7 +24,7 @@ export default function App() {
   const { boards, loading, error, selectedBoardId, selectBoard } = useBoards(
     state === 'authenticated',
   )
-  const { labels, selectedLabel, selectLabel } = useLabels(
+  const { labels, selectedLabels, toggleLabel, clearLabels } = useLabels(
     state === 'authenticated' ? selectedBoardId : '',
   )
   const { lists, selectedListId, selectList } = useLists(
@@ -134,8 +134,9 @@ export default function App() {
                 boardsLoading={loading}
                 boardsError={error}
                 labels={labels}
-                selectedLabel={selectedLabel}
-                onSelectLabel={selectLabel}
+                selectedLabels={selectedLabels}
+                onToggleLabel={toggleLabel}
+                onClearLabels={clearLabels}
                 lists={lists}
                 selectedListId={selectedListId}
                 onSelectList={selectList}

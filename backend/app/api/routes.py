@@ -18,6 +18,9 @@ class CreateCardRequest(BaseModel):
     board_id: str
     priority: str | None = None
     description: str | None = None
+    labels: list[str] | None = None
+    # Transition alias (FR-012): a cached PWA may still send the single-label field. Applied
+    # together with `labels` and removed in a future version — see contracts/api.md.
     label: str | None = None
     list_id: str | None = None
 
@@ -64,8 +67,12 @@ async def create_card(
     client: TrelloClient = Depends(get_client),
 ) -> dict[str, str]:
     try:
+        # R7: any number of labels may be chosen (the board is the authority on which exist).
+        labels = [*req.labels] if req.labels else []
+        if req.label and req.label.strip():
+            labels.append(req.label)
         card_id = await create_card_use_case(
-            client, req.title, req.board_id, req.priority, req.description, req.label, req.list_id
+            client, req.title, req.board_id, req.priority, req.description, labels, req.list_id
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -5,7 +5,9 @@
 - **Prioridade**: classificação do card limitada aos rótulos configurados em
   `trello.priority_labels` (`R3`); aplicada como label do Trello.
 - **Etiqueta**: classificação **já existente** no board do Trello (nome + cor) que pode acompanhar o
-  card; escolhida em um toque, opcional e aplicada apenas na criação (`R7`).
+  card; **múltipla** — quantas quiser, cada uma ligada/desligada em um toque, sem mexer nas outras —
+  opcional e aplicada apenas na criação (`R7`). Uma etiqueta que sumiu do board é ignorada sem
+  derrubar as demais.
 - **Lista de destino**: lista aberta do board onde o card será criado; escolha única, opcional, com a
   primeira lista como padrão (`R8`).
 - **PWA**: Progressive Web App — app web instalável, mobile-first.

@@ -52,19 +52,37 @@ def test_card_rejects_description_above_the_limit() -> None:
         Card(title="T", board_id="b", description="x" * (MAX_DESCRIPTION_CHARS + 1))
 
 
-def test_card_without_label_stays_none() -> None:
-    """R7: the label is optional and starts empty."""
-    assert Card(title="T", board_id="b").label is None
+def test_card_without_labels_stays_empty() -> None:
+    """R7 (amended by 010): labels are optional and start empty."""
+    assert Card(title="T", board_id="b").labels == ()
 
 
-def test_card_normalizes_a_blank_label() -> None:
-    """R7: a blank label means "no label"."""
+def test_card_normalizes_blank_labels() -> None:
+    """R7: a blank name means "no label"."""
     for blank in ("", "   ", "\n\n", "  \t "):
-        assert Card(title="T", board_id="b", label=blank).label is None
+        assert Card(title="T", board_id="b", labels=[blank]).labels == ()
 
 
-def test_card_keeps_the_label_name_intact() -> None:
-    assert Card(title="T", board_id="b", label="  Casa  ").label == "Casa"
+def test_card_keeps_the_label_names_intact() -> None:
+    assert Card(title="T", board_id="b", labels=["  Casa  "]).labels == ("Casa",)
+
+
+def test_card_accepts_several_labels_in_the_chosen_order() -> None:
+    """FR-002/FR-005: as many labels as the board offers, in the order chosen."""
+    card = Card(title="T", board_id="b", labels=["Casa", "Trabalho", "Financeiro"])
+    assert card.labels == ("Casa", "Trabalho", "Financeiro")
+
+
+def test_card_drops_repeated_labels() -> None:
+    """FR-007: the same name must never become two labels."""
+    card = Card(title="T", board_id="b", labels=["Casa", "Casa", " Trabalho ", "Casa"])
+    assert card.labels == ("Casa", "Trabalho")
+
+
+def test_card_drops_blank_names_but_keeps_the_others() -> None:
+    """R7: one unusable name must not discard the usable ones (FR-006)."""
+    card = Card(title="T", board_id="b", labels=["Casa", "   ", "", "Trabalho"])
+    assert card.labels == ("Casa", "Trabalho")
 
 
 def test_card_without_list_stays_none() -> None:

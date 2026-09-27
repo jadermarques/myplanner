@@ -17,10 +17,11 @@ código (ex.: `R3`). Ver `docs/TESTS_STRATEGY.md`.
 - **R6**: A descrição do card é **opcional**, limitada a **2.000 caracteres**, existe apenas na
   criação (não há edição) e é enviada ao Trello exatamente como digitada — sem formatação
   interpretada e sem alterar quebras de linha.
-- **R7**: A etiqueta do card é **opcional** e só é aplicada se **existir no board** no momento da
-  criação; se tiver desaparecido, o card é criado sem ela (nunca falha por causa disso). As
-  etiquetas usadas como prioridade **não** são oferecidas de novo (ver R3) e etiquetas **sem nome**
-  não são oferecidas.
+- **R7** (emendada pela 010): As **etiquetas** do card são **opcionais**, em **qualquer quantidade**
+  (sem limite artificial) e cada uma só é aplicada se **existir no board** no momento da criação; uma
+  etiqueta que tenha desaparecido é ignorada **individualmente** — as demais continuam valendo e o card
+  **nunca** falha por causa dela. Nome repetido não aplica a etiqueta duas vezes. As etiquetas usadas
+  como prioridade **não** são oferecidas de novo (ver R3) e etiquetas **sem nome** não são oferecidas.
 - **R8**: A lista de destino do card é **opcional** e o padrão é sempre a **primeira lista aberta** do
   board. Uma lista informada só é usada se **pertencer ao board**; caso contrário (lista de outro
   board, apagada ou vazia) o card vai para a primeira lista — **nunca** para fora do board e

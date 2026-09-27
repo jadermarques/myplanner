@@ -12,8 +12,9 @@ interface CardFormProps {
   boardsLoading: boolean
   boardsError: string | null
   labels: Label[]
-  selectedLabel: string
-  onSelectLabel: (label: string) => void
+  selectedLabels: string[]
+  onToggleLabel: (label: string) => void
+  onClearLabels: () => void
   lists: BoardList[]
   selectedListId: string
   onSelectList: (listId: string) => void
@@ -31,8 +32,9 @@ export default function CardForm({
   boardsLoading,
   boardsError,
   labels,
-  selectedLabel,
-  onSelectLabel,
+  selectedLabels,
+  onToggleLabel,
+  onClearLabels,
   lists,
   selectedListId,
   onSelectList,
@@ -68,7 +70,7 @@ export default function CardForm({
         selectedBoardId,
         priority || undefined,
         description.trim() || undefined,
-        selectedLabel || undefined,
+        selectedLabels.length ? selectedLabels : undefined,
         selectedListId || undefined,
       )
       setSuccess(true)
@@ -122,7 +124,12 @@ export default function CardForm({
           <span className="field__label" aria-hidden="true">
             Etiqueta
           </span>
-          <LabelSelect labels={labels} value={selectedLabel} onChange={onSelectLabel} />
+          <LabelSelect
+            labels={labels}
+            value={selectedLabels}
+            onToggle={onToggleLabel}
+            onClear={onClearLabels}
+          />
         </div>
       )}
 
