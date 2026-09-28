@@ -105,6 +105,12 @@ deploy/scripts/publish.sh v0.13.0     # publicar uma versão
 deploy/scripts/publish.sh v0.12.0     # reverter para a tag anterior (mesmo comando)
 ```
 
+> **Como `deploy`, não como `root`.** O usuário `deploy` é o dono de `/opt/myplanner` e é onde vivem a
+> chave SSH do GitHub, o acesso ao Docker e o `deploy/.env`. O script se garante: chamado por outro
+> usuário (tipicamente `root`), ele **se reexecuta como `deploy`** sozinho. Se você vir
+> `fatal: detected dubious ownership` ou `git@github.com: Permission denied (publickey)`, era isso —
+> rode explícito: `sudo -u deploy -H bash /opt/myplanner/deploy/scripts/publish.sh v0.15.1`.
+
 Segredos e o volume do app (hash da senha) não são tocados; a sessão de 90 dias continua válida.
 
 ## Diagnóstico
@@ -119,6 +125,8 @@ tailscale serve status
 
 | Sintoma | Causa provável |
 |---|---|
+| `fatal: detected dubious ownership in repository at '/opt/myplanner'` | o deploy foi rodado como outro usuário (ex.: `root`), não como `deploy` — o guard do `publish.sh` já resolve sozinho |
+| `git@github.com: Permission denied (publickey)` | idem: rodando como `root`, faltava a chave SSH que vive no `deploy` |
 | `https://...ts.net` não abre no celular | app do Tailscale desconectado, ou o aparelho não está no tailnet |
 | Abre, mas com aviso de segurança | **HTTPS Certificates** não habilitado no console do Tailscale |
 | O servidor desaparece da rede depois de meses | **Key expiry** não foi desativada no nó |

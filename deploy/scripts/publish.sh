@@ -8,6 +8,10 @@
 # nenhum valor (S8). O volume do app (hash da senha) não é tocado.
 set -euo pipefail
 
+# Roda como o dono do repositório (chave SSH do GitHub, Docker e deploy/.env vivem nele). Se você
+# chamar como outro usuário (ex.: root), o script se reexecuta como o dono — ver _run-as-owner.sh.
+source "$(dirname "${BASH_SOURCE[0]}")/_run-as-owner.sh"
+
 TAG="${1:?uso: deploy/scripts/publish.sh <tag> (ex.: v0.13.0)}"
 
 cd "$(dirname "$0")/.."                 # .../deploy

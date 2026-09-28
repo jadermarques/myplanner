@@ -7,6 +7,10 @@
 #   3. publica o app no tailnet (o Tailscale cuida do HTTPS e do certificado).
 set -euo pipefail
 
+# Roda como o dono do repositório (chave SSH do GitHub, Docker e deploy/.env vivem nele). Se você
+# chamar como outro usuário (ex.: root), o script se reexecuta como o dono — ver _run-as-owner.sh.
+source "$(dirname "${BASH_SOURCE[0]}")/_run-as-owner.sh"
+
 cd "$(dirname "$0")/.."                       # .../deploy
 if [ ! -f .env ]; then
     echo "erro: crie deploy/.env a partir de deploy/.env.example (os segredos ficam só no servidor)"

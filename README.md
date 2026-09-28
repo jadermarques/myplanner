@@ -164,6 +164,12 @@ deploy/scripts/publish.sh v0.13.0     # publicar
 deploy/scripts/publish.sh v0.12.0     # reverter para a tag anterior (mesmo comando)
 ```
 
+> **Rode como o usuário `deploy`** (dono de `/opt/myplanner`): é ele que tem a chave SSH do GitHub,
+> o acesso ao Docker e o `deploy/.env`. Chamado como outro usuário (tipicamente `root`), o
+> `publish.sh` **se reexecuta como `deploy`** sozinho — então não vai mais aparecer
+> `dubious ownership` nem `Permission denied (publickey)`. Para ser explícito:
+> `sudo -u deploy -H bash /opt/myplanner/deploy/scripts/publish.sh v0.15.1`.
+
 Primeira publicação no servidor (uma vez): `deploy/scripts/setup-tailscale.sh` e, depois,
 `deploy/scripts/first-publish.sh`. Roteiro completo:
 `specs/011-publicacao-em-producao/quickstart.md`.
