@@ -17,9 +17,11 @@ export default function CustomFields({ fields, values, onChange }: CustomFieldsP
         const value = values[field.id] ?? ''
         return (
           <div className="field" key={field.id}>
-            <label className="field__label" htmlFor={`cf-${field.id}`}>
-              {field.name}
-            </label>
+            {field.type !== 'checkbox' && (
+              <label className="field__label" htmlFor={`cf-${field.id}`}>
+                {field.name}
+              </label>
+            )}
 
             {field.type === 'list' && (
               <select

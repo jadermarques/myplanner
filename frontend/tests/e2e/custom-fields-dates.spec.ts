@@ -91,3 +91,60 @@ test('a due date enables the reminder, and clearing the date removes it (014/FR-
 
   expect(payload).toMatchObject({ due: '2026-09-28T10:30', due_reminder: 5 })
 })
+
+test('a caixa de seleção mostra o estado marcado no próprio chip (013)', async ({ page }) => {
+  // Regressão: o input fica invisível dentro do chip; sem um estado visual o toque não muda nada na
+  // tela e o campo parece não funcionar (visto no SESA com "Cartão sem relevância").
+  await mockApp(page, {
+    customFields: [{ id: 'cf-check', name: 'Cartão sem relevância', type: 'checkbox', options: [] }],
+  })
+  await page.goto('/')
+
+  const chip = page.locator('label.chip', { hasText: 'Cartão sem relevância' })
+  const before = await chip.evaluate((el) => getComputedStyle(el).backgroundColor)
+  await page.getByRole('checkbox', { name: 'Cartão sem relevância' }).click()
+  const after = await chip.evaluate((el) => getComputedStyle(el).backgroundColor)
+
+  expect(after).not.toBe(before)
+  await expect(page.getByRole('checkbox', { name: 'Cartão sem relevância' })).toBeChecked()
+
+  // e o nome do campo aparece uma vez só (o chip é o rótulo; não há segundo rótulo acima)
+  await expect(page.getByText('Cartão sem relevância')).toHaveCount(1)
+})
+
+test('a captura não estoura a largura da tela, com os campos de data presentes (013/014)', async ({
+  page,
+}) => {
+  // Regressão: no celular os controles nativos de data cresciam além do cartão (visto no SESA com
+  // "Data de entrega" e "Cobrar em"). Os campos de data ficam presos ao tamanho do cartão.
+  await mockApp(page, {
+    customFields: [PRIORITY, { id: 'cf-date', name: 'Cobrar em', type: 'date', options: [] }],
+  })
+  await page.goto('/')
+  await page.getByLabel('Data de entrega').fill('2026-09-28T10:30')
+  await page.getByLabel('Cobrar em').fill('2026-09-28')
+
+  const minWidths = await page
+    .locator('input[type="date"], input[type="datetime-local"]')
+    .evaluateAll((els) => els.map((el) => getComputedStyle(el).minWidth))
+  expect(minWidths.length).toBe(2)
+  for (const minWidth of minWidths) expect(minWidth).toBe('0px')
+
+  for (const width of [320, 360, 393]) {
+    await page.setViewportSize({ width, height: 800 })
+    const overflowing = await page.evaluate(() => {
+      const vw = window.innerWidth
+      const bad: string[] = []
+      for (const el of Array.from(
+        document.querySelectorAll('input, select, textarea, button, label'),
+      )) {
+        const rect = el.getBoundingClientRect()
+        if (rect.right > vw + 1 || rect.left < -1) {
+          bad.push(`${el.tagName}${el.id ? '#' + el.id : ''} passa de ${vw}px`)
+        }
+      }
+      return bad
+    })
+    expect(overflowing, `largura ${width}px`).toEqual([])
+  }
+})

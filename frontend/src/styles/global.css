@@ -325,6 +325,32 @@ select.input {
   cursor: pointer;
 }
 
+/* Campos de data nativos (date / datetime-local). No celular o controle do sistema pode trazer uma
+   largura intrínseca maior que o cartão e vazar para fora da tela — visto no board SESA com
+   "Data de entrega" e "Cobrar em" (013/014). O tamanho fica preso ao cartão, sem mexer na
+   aparência nativa: o seletor de data continua abrindo igual. */
+input[type='date'],
+input[type='datetime-local'] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* o valor (dd/mm/aaaa) não empurra a largura para fora do campo */
+input[type='date']::-webkit-date-and-time-value,
+input[type='datetime-local']::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* o ícone do calendário fica dentro do cartão e segue tocável */
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  margin-left: 0;
+  padding: 0;
+}
+
 /* chips de prioridade: 1 toque, alvo = o chip inteiro (>= 48px) */
 .chips {
   display: flex;
@@ -375,6 +401,17 @@ select.input {
 .chip:has(input:focus-visible) {
   outline: 2px solid var(--accent-soft);
   outline-offset: 2px;
+}
+
+/* Caixa de seleção dentro do chip (etiquetas, campos personalizados e lembrete): o input fica
+   invisível (opacity 0) e cobre o chip, então quem precisa mostrar o estado é o próprio chip. Sem
+   esta regra, marcar/desmarcar não muda nada na tela e o campo parece não funcionar — foi o que
+   aconteceu no SESA com "Cartão sem relevância" (013). Mesmo realce de .chip--on, sem deslocar o
+   layout ao ligar/desligar. */
+.chip:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 26%, var(--surface));
+  font-weight: 650;
 }
 
 .chip--on {
